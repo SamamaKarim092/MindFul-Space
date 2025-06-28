@@ -11,6 +11,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'html', 'homepage.html'));
+});
+
+app.get('/home', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'html', 'home.html'));
 });
 
