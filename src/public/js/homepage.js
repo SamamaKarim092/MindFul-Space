@@ -69,7 +69,8 @@ function setupScrollEffects() {
     window.addEventListener('scroll', () => {
         const scrolled = window.pageYOffset;
         const parallax = document.querySelector('.hero');
-        const speed = scrolled * 0.5;
+        const maxParallax = 150; // Limit max movement
+        const speed = Math.min(scrolled * 0.5, maxParallax);
         
         if (parallax) {
             parallax.style.transform = `translateY(${speed}px)`;
@@ -78,8 +79,8 @@ function setupScrollEffects() {
 
     // Fade in animations
     const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
+        threshold: 0.2, // Trigger a bit earlier
+        rootMargin: '0px 0px -100px 0px' // Reveal sooner
     };
 
     const observer = new IntersectionObserver((entries) => {
@@ -384,28 +385,6 @@ function showTrends() {
         openSignupModal();
     }, 1500);
 }
-
-// Social Auth Functions (Demo)
-function handleGoogleAuth() {
-    showNotification('Google authentication is not configured in this demo', 'warning');
-}
-
-function handleFacebookAuth() {
-    showNotification('Facebook authentication is not configured in this demo', 'warning');
-}
-
-// Add event listeners for social auth buttons
-document.addEventListener('DOMContentLoaded', function() {
-    // Google auth buttons
-    document.querySelectorAll('.btn-google').forEach(btn => {
-        btn.addEventListener('click', handleGoogleAuth);
-    });
-    
-    // Facebook auth buttons
-    document.querySelectorAll('.btn-facebook').forEach(btn => {
-        btn.addEventListener('click', handleFacebookAuth);
-    });
-});
 
 // Floating cards animation
 function initFloatingAnimation() {

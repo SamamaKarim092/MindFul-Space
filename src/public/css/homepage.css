@@ -389,12 +389,12 @@ p {
 
 /* Features Section */
 .features {
-    padding: 6rem 0;
+    padding: 30px;
     background: white;
 }
 
 .section-header {
-    margin-top: 30rem;
+    margin-top: 12rem;
     text-align: center;
     margin-bottom: 8rem;
 }
@@ -861,10 +861,10 @@ p {
     border-color: #db4437;
     color: #db4437;
 }
-
-.btn-facebook:hover {
-    border-color: #4267B2;
-    color: #4267B2;
+.btn-microsoft:hover {
+    border-color: #00a1f1; /* Example Microsoft brand color */
+    color: #00a1f1;
+    
 }
 
 .auth-switch {
