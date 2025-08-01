@@ -3,7 +3,7 @@
 **Mindful Space** is a full-stack journaling web application focused on emotional well-being. It allows users to reflect on their thoughts, track moods, and receive uplifting support — all in a safe, personalized space.
 
 🔗 **Live Demo**:  
-👉 https://modern-bank-app-pi-two.vercel.app/
+👉 https://mental-health-sentiment-journal.onrender.com/
 
 ---
 
