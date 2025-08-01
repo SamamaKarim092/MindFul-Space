@@ -12,9 +12,6 @@
 - 📝 **User Journal Entries**  
   Users can write daily reflections and emotional thoughts in a personal journal.
 
-- 💬 **Sentiment Detection** *(Optional)*  
-  Automatically categorizes journal entries as **Positive**, **Neutral**, or **Negative**.
-
 - 📅 **Entry History & Date Filtering**  
   View, edit, or delete past journal entries. Filter entries by date to analyze your emotional journey.
 
