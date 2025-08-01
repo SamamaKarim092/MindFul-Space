@@ -33,6 +33,7 @@ body {
     flex-direction: column;
     position: fixed;
     height: 100vh;
+    overflow-y: auto;
 }
 
 .logo {
