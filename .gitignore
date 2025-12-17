@@ -1,2 +1,51 @@
-.env
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+.turbo/
+out/
+
+# Environment files (NEVER commit these!)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+apps/*/.env
+apps/*/.env.local
+packages/*/.env
+
+# Keep example file
+!.env.example
+
+# Prisma
+packages/prisma/prisma/*.db
+packages/prisma/prisma/*.db-journal
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
