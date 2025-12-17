@@ -1,0 +1,147 @@
+// Prisma Schema for Mental Health Journal
+// Based on migration from MongoDB to Supabase PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// USER MODEL
+// Synced with Supabase Auth - uses same UUID
+// ============================================
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  entries Entry[]
+  chats   Chat[]
+
+  @@map("users")
+}
+
+// ============================================
+// JOURNAL ENTRY MODEL
+// Migrated from MongoDB Entry model
+// ============================================
+model Entry {
+  id        String          @id @default(uuid()) @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  title     String
+  content   String          @db.Text
+  mood      Mood            @default(NEUTRAL)
+  sentiment Float?          // AI-computed sentiment score (-1 to 1)
+  tags      String[]        @default([])
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attachments Attachment[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([mood])
+  @@map("entries")
+}
+
+enum Mood {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+// ============================================
+// ATTACHMENT MODEL (for Supabase Storage)
+// ============================================
+model Attachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  entryId   String   @map("entry_id") @db.Uuid
+  fileName  String   @map("file_name")
+  fileUrl   String   @map("file_url")
+  fileType  String   @map("file_type")
+  fileSize  Int      @map("file_size")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  entry Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+  @@map("attachments")
+}
+
+// ============================================
+// CHAT MODEL
+// Migrated from MongoDB Chat model
+// ============================================
+model Chat {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  title     String    @default("New Chat")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("chats")
+}
+
+// ============================================
+// MESSAGE MODEL (embedded in Chat in MongoDB)
+// Now separate table with relation
+// ============================================
+model Message {
+  id        String      @id @default(uuid()) @db.Uuid
+  chatId    String      @map("chat_id") @db.Uuid
+  role      MessageRole
+  content   String      @db.Text
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+enum MessageRole {
+  USER
+  AI
+  SYSTEM
+}
+
+// ============================================
+// QUOTE MODEL
+// Migrated from MongoDB Quote model
+// ============================================
+model Quote {
+  id        String    @id @default(uuid()) @db.Uuid
+  text      String    @db.Text
+  author    String    @default("Unknown")
+  type      QuoteType @default(QUOTE)
+  mood      Mood      @default(POSITIVE)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("quotes")
+}
+
+enum QuoteType {
+  QUOTE
+  TIP
+}
