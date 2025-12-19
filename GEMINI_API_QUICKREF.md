@@ -6,7 +6,7 @@ You already have everything you need:
 
 - **API Key**: `YOUR_GEMINI_API_KEY`
 - **Free Tier**: 1500 requests per day
-- **Model**: Gemini 2.5 Flash
+- **Model**: Gemini 2.0 Flash Lite
 - **No credit card required** ✨
 
 ---// Debug: Print everything to see what we have
@@ -22,19 +22,19 @@ let entryId = "NOT_FOUND";
 
 // Try different paths
 if (items[0]?.json?.body?.entryId) {
-  entryId = items[0].json.body.entryId;
+entryId = items[0].json.body.entryId;
 } else if (items[0]?.json?.entryId) {
-  entryId = items[0].json.entryId;
+entryId = items[0].json.entryId;
 }
 
 console.log("Final entryId:", entryId);
 console.log("Final sentiment:", sentiment);
 
 return {
-  json: {
-    entryId: entryId,
-    sentiment: sentiment,
-  },
+json: {
+entryId: entryId,
+sentiment: sentiment,
+},
 };
 
 ## 📋 n8n Workflow Configuration
@@ -52,7 +52,7 @@ Already covered in the guide - no changes needed.
 - Method: `POST`
 - URL:
   ```
-  https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY
+  https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=YOUR_GEMINI_API_KEY
   ```
 - Body Content Type: `JSON`
 - JSON Body:
