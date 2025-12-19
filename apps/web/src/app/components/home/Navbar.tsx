@@ -57,7 +57,7 @@ const Navbar = () => {
               Pricing
             </Link>
             <Link
-              href="#about"
+              href="/about"
               className="text-sm font-medium text-white/80 transition hover:text-white"
             >
               About
@@ -137,7 +137,7 @@ const Navbar = () => {
             Pricing
           </Link>
           <Link
-            href="#about"
+            href="/about"
             onClick={() => setIsOpen(false)}
             className="text-lg font-medium text-white/80 transition hover:text-white"
           >
