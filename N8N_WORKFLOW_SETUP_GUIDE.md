@@ -75,13 +75,31 @@ n8n will be accessible at: **http://localhost:5678**
 
 You have several options for sentiment analysis. Choose one:
 
-#### Option A: Google Gemini API (Recommended - Free & Fast)
+#### Option A: Hugging Face Inference API (Recommended - Free & Stable)
 
 1. Add a new **"HTTP Request"** node
 2. Connect it to the Webhook node
 3. Configure:
    - **Method**: `POST`
-   - **URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`
+   - **URL**: `https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment-latest`
+   - **Headers**:
+     - Name: `Authorization`
+     - Value: `Bearer YOUR_HUGGING_FACE_TOKEN`
+   - **Body Content Type**: `JSON`
+   - **Body**:
+   ```json
+   {
+     "inputs": "{{ $json.body.content }}"
+   }
+   ```
+
+#### Option B: Google Gemini API (Alternative)
+
+1. Add a new **"HTTP Request"** node
+2. Connect it to the Webhook node
+3. Configure:
+   - **Method**: `POST`
+   - **URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=YOUR_GEMINI_API_KEY`
    - **Body Content Type**: `JSON`
    - **Body**:
    ```json
@@ -166,7 +184,7 @@ You have several options for sentiment analysis. Choose one:
 1. Add a new **"HTTP Request"** node
 2. Configure:
    - **Method**: `POST`
-   - **URL**: `https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english`
+   - **URL**: `https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment-latest`
    - **Headers**:
      - **Name**: `Authorization`
      - **Value**: `Bearer YOUR_HUGGINGFACE_TOKEN`
@@ -238,7 +256,7 @@ You have several options for sentiment analysis. Choose one:
 1. Add a new **"HTTP Request"** node
 2. Configure:
    - **Method**: `POST`
-   - **URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`
+   - **URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=YOUR_GEMINI_API_KEY`
    - **Body Content Type**: `JSON`
    - **Body**:
    ```json
@@ -303,10 +321,10 @@ return {
 **For Hugging Face:**
 
 ```javascript
-// Extract sentiment score from Hugging Face response
+// Extract sentiment score from Hugging Face response (cardiffnlp model)
 const results = $input.first().json[0];
-const positiveScore = results.find((r) => r.label === "POSITIVE")?.score || 0;
-const negativeScore = results.find((r) => r.label === "NEGATIVE")?.score || 0;
+const positiveScore = results.find((r) => r.label === "positive")?.score || 0;
+const negativeScore = results.find((r) => r.label === "negative")?.score || 0;
 
 // Convert to -1 to 1 scale
 const sentiment = positiveScore - negativeScore;
@@ -317,7 +335,7 @@ const entryId = $("Webhook").first().json.body.entryId;
 return {
   json: {
     entryId: entryId,
-    sentiment: sentiment,
+    sentiment: parseFloat(sentiment.toFixed(2)),
   },
 };
 ```
@@ -377,7 +395,7 @@ You can update the database directly (Option A) or use the API (Option B - Recom
    SET sentiment = {{ $json.sentiment }}
    WHERE id = '{{ $json.entryId }}'::uuid;
    ```
-   *Note: The `::uuid` is required because your database uses UUID types.*
+   _Note: The `::uuid` is required because your database uses UUID types._
 
 #### Option B: HTTP Request Node (API Update - Recommended)
 
