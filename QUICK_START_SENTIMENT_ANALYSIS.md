@@ -51,7 +51,7 @@ Open your browser: **http://localhost:5678**
 1. In n8n, click **"+"** → Search "HTTP Request"
 2. Settings:
    - Method: **POST**
-   - URL: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyCjkEGWWidv6nOgFgLJ_jt38NfqwNSDfjE`
+   - URL: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`
    - Body Content Type: **JSON**
    - JSON Body:
    ```json

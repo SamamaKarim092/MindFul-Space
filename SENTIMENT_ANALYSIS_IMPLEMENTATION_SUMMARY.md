@@ -240,7 +240,7 @@ You should see sentiment scores populated.
    ```bash
    curl -X POST http://localhost:5678/webhook/sentiment-analysis \
      -H "Content-Type: application/json" \
-     -d '{"entryId": "test-123", "content": "I am happy!"}'
+     -d '{"entryId": "550e8400-e29b-41d4-a716-446655440000", "content": "I am happy!"}'
    ```
 
 ### Issue: AI API returns errors

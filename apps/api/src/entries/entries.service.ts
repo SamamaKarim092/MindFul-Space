@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateEntryInput, UpdateEntryInput, EntryFilterInput } from './dto/entry.dto';
 import { Mood, Prisma } from '@repo/prisma';
@@ -7,9 +8,15 @@ import axios from 'axios';
 @Injectable()
 export class EntriesService {
   private readonly logger = new Logger(EntriesService.name);
-  private readonly n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
+
+  private get n8nWebhookUrl() {
+    return this.configService.get<string>('N8N_WEBHOOK_URL');
+  }
 
   async create(userId: string, input: CreateEntryInput) {
     const entry = await this.prisma.entry.create({
@@ -33,20 +40,24 @@ export class EntriesService {
    * This runs asynchronously and doesn't block the response
    */
   private async triggerSentimentAnalysis(entryId: string, content: string) {
-    if (!this.n8nWebhookUrl) {
+    const webhookUrl = this.n8nWebhookUrl;
+    if (!webhookUrl) {
       this.logger.warn('N8N_WEBHOOK_URL not configured - skipping sentiment analysis');
       return;
     }
 
     try {
-      await axios.post(this.n8nWebhookUrl, {
+      this.logger.log(`Triggering sentiment analysis for entry ${entryId} via ${webhookUrl}`);
+      await axios.post(webhookUrl, {
         entryId,
         content,
       });
-      this.logger.log(`Triggered sentiment analysis for entry ${entryId}`);
+      this.logger.log(`Successfully triggered sentiment analysis for entry ${entryId}`);
     } catch (error) {
-      this.logger.error(`Failed to trigger sentiment analysis: ${error.message}`);
-      // Don't throw - we don't want to fail the entry creation if n8n is down
+      this.logger.error(`Failed to trigger sentiment analysis for entry ${entryId}: ${error.message}`);
+      if (error.response) {
+        this.logger.error(`n8n response error: ${JSON.stringify(error.response.data)}`);
+      }
     }
   }
 
@@ -114,10 +125,17 @@ export class EntriesService {
   }
 
   async updateSentiment(id: string, sentiment: number) {
-    return this.prisma.entry.update({
-      where: { id },
-      data: { sentiment },
-    });
+    try {
+      const entry = await this.prisma.entry.update({
+        where: { id },
+        data: { sentiment },
+      });
+      this.logger.log(`Updated sentiment for entry ${id} to ${sentiment}`);
+      return entry;
+    } catch (error) {
+      this.logger.error(`Failed to update sentiment for entry ${id}: ${error.message}`);
+      throw new NotFoundException(`Entry with ID ${id} not found`);
+    }
   }
 
   async getStats(userId: string) {

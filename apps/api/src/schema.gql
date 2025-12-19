@@ -97,6 +97,7 @@ type Mutation {
   sendMessage(input: SendMessageInput!): Chat!
   updateChatTitle(input: UpdateChatTitleInput!): Chat!
   updateEntry(input: UpdateEntryInput!): Entry!
+  updateEntrySentiment(id: String!, sentiment: Float!): Entry!
 }
 
 type Query {

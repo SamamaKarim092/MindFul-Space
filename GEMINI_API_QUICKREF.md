@@ -4,9 +4,9 @@
 
 You already have everything you need:
 
-- **API Key**: `AIzaSyCjkEGWWidv6nOgFgLJ_jt38NfqwNSDfjE`
+- **API Key**: `YOUR_GEMINI_API_KEY`
 - **Free Tier**: 1500 requests per day
-- **Model**: Gemini Flash (Latest)
+- **Model**: Gemini 2.5 Flash
 - **No credit card required** ✨
 
 ---// Debug: Print everything to see what we have
@@ -52,7 +52,7 @@ Already covered in the guide - no changes needed.
 - Method: `POST`
 - URL:
   ```
-  https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=AIzaSyCjkEGWWidv6nOgFgLJ_jt38NfqwNSDfjE
+  https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY
   ```
 - Body Content Type: `JSON`
 - JSON Body:
@@ -104,7 +104,7 @@ Once your workflow is set up, test it with curl:
 curl -X POST http://localhost:5678/webhook/sentiment-analysis \
   -H "Content-Type: application/json" \
   -d '{
-    "entryId": "test-123",
+    "entryId": "550e8400-e29b-41d4-a716-446655440000",
     "content": "I am feeling incredibly happy and grateful today! Everything is amazing!"
   }'
 ```

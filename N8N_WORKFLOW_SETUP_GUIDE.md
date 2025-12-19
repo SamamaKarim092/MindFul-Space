@@ -64,7 +64,7 @@ n8n will be accessible at: **http://localhost:5678**
 
 ```json
 {
-  "entryId": "uuid-of-entry",
+  "entryId": "550e8400-e29b-41d4-a716-446655440000",
   "content": "Today I felt amazing and accomplished so much!"
 }
 ```
@@ -75,7 +75,54 @@ n8n will be accessible at: **http://localhost:5678**
 
 You have several options for sentiment analysis. Choose one:
 
-#### Option A: Google Cloud Natural Language API (Recommended)
+#### Option A: Google Gemini API (Recommended - Free & Fast)
+
+1. Add a new **"HTTP Request"** node
+2. Connect it to the Webhook node
+3. Configure:
+   - **Method**: `POST`
+   - **URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`
+   - **Body Content Type**: `JSON`
+   - **Body**:
+   ```json
+   {
+     "contents": [
+       {
+         "parts": [
+           {
+             "text": "Analyze the sentiment of this text and respond with ONLY a single number between -1.0 (very negative) and 1.0 (very positive). No explanation, just the number.\n\nText: {{ $json.body.content }}"
+           }
+         ]
+       }
+     ]
+   }
+   ```
+
+**Getting Gemini API Key:**
+
+1. Go to [Google AI Studio](https://aistudio.google.com/)
+2. Click **"Get API key"**
+3. Copy the API key and replace the key in the URL above
+
+**Response Format:**
+
+```json
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "0.8"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+#### Option B: Google Cloud Natural Language API (Alternative)
 
 1. Add a new **"HTTP Request"** node
 2. Connect it to the Webhook node
@@ -114,7 +161,7 @@ You have several options for sentiment analysis. Choose one:
 }
 ```
 
-#### Option B: Hugging Face Inference API (Free Alternative)
+#### Option C: Hugging Face Inference API (Free Alternative)
 
 1. Add a new **"HTTP Request"** node
 2. Configure:
@@ -191,7 +238,7 @@ You have several options for sentiment analysis. Choose one:
 1. Add a new **"HTTP Request"** node
 2. Configure:
    - **Method**: `POST`
-   - **URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyCjkEGWWidv6nOgFgLJ_jt38NfqwNSDfjE`
+   - **URL**: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`
    - **Body Content Type**: `JSON`
    - **Body**:
    ```json
@@ -313,29 +360,44 @@ return {
 
 ---
 
-### Step 6: Add Postgres Node (Database Update)
+### Step 6: Add the Update Node (Choose ONE Option)
 
-**This node updates the sentiment score in your database**
+You can update the database directly (Option A) or use the API (Option B - Recommended).
+
+#### Option A: Postgres Node (Direct Database Update)
 
 1. Add a **"Postgres"** node
 2. Connect it to the Function node
-3. Configure the connection:
-   - Click **"Create New Credential"**
-   - Enter your database details from `.env`:
-     - **Host**: `aws-1-ap-northeast-2.pooler.supabase.com`
-     - **Database**: `postgres`
-     - **User**: `postgres.tlskpfihsjghjoffzoii`
-     - **Password**: `fhsjdkh4324`
-     - **Port**: `5432`
-     - **SSL**: Enable (for Supabase)
-
+3. Configure the connection with your database details from `.env`
 4. Configure the query:
    - **Operation**: `Execute Query`
    - **Query**:
    ```sql
    UPDATE entries
    SET sentiment = {{ $json.sentiment }}
-   WHERE id = '{{ $json.entryId }}';
+   WHERE id = '{{ $json.entryId }}'::uuid;
+   ```
+   *Note: The `::uuid` is required because your database uses UUID types.*
+
+#### Option B: HTTP Request Node (API Update - Recommended)
+
+This is cleaner as it doesn't require sharing database credentials with n8n.
+
+1. Add an **"HTTP Request"** node
+2. Connect it to the Function node
+3. Configure:
+   - **Method**: `POST`
+   - **URL**: `http://localhost:3001/graphql` (Your API URL)
+   - **Body Content Type**: `JSON`
+   - **Body**:
+   ```json
+   {
+     "query": "mutation UpdateSentiment($id: String!, $sentiment: Float!) { updateEntrySentiment(id: $id, sentiment: $sentiment) { id sentiment } }",
+     "variables": {
+       "id": "{{ $json.entryId }}",
+       "sentiment": {{ $json.sentiment }}
+     }
+   }
    ```
 
 ---
@@ -358,7 +420,7 @@ return {
    curl -X POST http://localhost:5678/webhook/sentiment-analysis \
      -H "Content-Type: application/json" \
      -d '{
-       "entryId": "test-123",
+       "entryId": "550e8400-e29b-41d4-a716-446655440000",
        "content": "I am feeling incredibly happy and grateful today!"
      }'
    ```
