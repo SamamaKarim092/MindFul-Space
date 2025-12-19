@@ -78,6 +78,7 @@ _(You will need n8n running. You can set it up easily using Docker if you haven'
       UPDATE entries
       SET sentiment = {{ $json.sentiment }}
         WHERE id = '{{ $json.entryId }}'::uuid;
+      ```
 
 Now, we'll tell your main application's server to send the signal to n8n.
 
