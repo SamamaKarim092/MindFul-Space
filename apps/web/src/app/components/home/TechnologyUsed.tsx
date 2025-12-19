@@ -8,6 +8,8 @@ import {
   SiNestjs,
   SiGraphql,
   SiSupabase,
+  SiN8N,
+  SiOpenai,
 } from "react-icons/si";
 
 const techLogos = [
@@ -50,6 +52,16 @@ const techLogos = [
     node: <SiSupabase className="text-[#3ECF8E]" />,
     title: "Supabase",
     href: "https://supabase.com",
+  },
+  {
+    node: <SiN8N className="text-[#FF6C37]" />,
+    title: "n8n",
+    href: "https://n8n.io",
+  },
+  {
+    node: <SiOpenai className="text-[#412991]" />,
+    title: "Groq AI",
+    href: "https://groq.com",
   },
 ];
 
