@@ -46,12 +46,31 @@ Open your browser: **http://localhost:5678**
 
 #### 2.3 Add AI Service Node
 
-**RECOMMENDED OPTION - Google AI Studio / Gemini (Free, Already Have Key!):**
+**RECOMMENDED OPTION - Hugging Face (Free & Stable):**
 
 1. In n8n, click **"+"** → Search "HTTP Request"
 2. Settings:
    - Method: **POST**
-   - URL: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=YOUR_GEMINI_API_KEY`
+   - URL: `https://api-inference.huggingface.co/models/cardiffnlp/twitter-roberta-base-sentiment-latest`
+   - Add Header:
+     - Name: `Authorization`
+     - Value: `Bearer YOUR_HUGGING_FACE_TOKEN`
+   - Body Content Type: **JSON**
+   - JSON Body:
+   ```json
+   {
+     "inputs": "{{ $json.body.content }}"
+   }
+   ```
+
+**Why Hugging Face?** Completely free, no credit card, and very stable for sentiment analysis!
+
+<details>
+<summary><b>Alternative: Google Gemini (Free Tier)</b></summary>
+
+1. Settings:
+   - Method: **POST**
+   - URL: `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=YOUR_GEMINI_API_KEY`
    - Body Content Type: **JSON**
    - JSON Body:
    ```json
@@ -67,32 +86,6 @@ Open your browser: **http://localhost:5678**
      ]
    }
    ```
-
-**Why Gemini?** 1500 free requests per day, very accurate, no credit card needed!
-
-<details>
-<summary><b>Alternative: Hugging Face (also free)</b></summary>
-
-1. Get free API token:
-   - Go to https://huggingface.co
-   - Sign up (free)
-   - Settings → Access Tokens → New Token
-   - Copy the token
-
-2. In n8n, click **"+"** → Search "HTTP Request"
-3. Settings:
-   - Method: **POST**
-   - URL: `https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english`
-   - Add Header:
-     - Name: `Authorization`
-     - Value: `Bearer YOUR_TOKEN_HERE` (paste your token)
-   - Body Content Type: **JSON**
-   - JSON Body:
-   ```json
-   {
-     "inputs": "={{ $json.body.content }}"
-   }
-   ```
    </details>
 
 #### 2.4 Add Function Node
@@ -100,12 +93,14 @@ Open your browser: **http://localhost:5678**
 1. Click **"+"** → Search "Code" → Select "Code"
 2. Paste this code:
 
-**For Gemini:**
-
 ```javascript
-// Get sentiment from Gemini response
-const text = $input.first().json.candidates[0].content.parts[0].text;
-const sentiment = parseFloat(text.trim());
+// Get sentiment from Hugging Face response (cardiffnlp model)
+const results = $input.first().json[0];
+const positiveScore = results.find((r) => r.label === "positive")?.score || 0;
+const negativeScore = results.find((r) => r.label === "negative")?.score || 0;
+
+// Convert to -1 to 1 scale
+const sentiment = positiveScore - negativeScore;
 
 // Get entry ID from webhook
 const entryId = $("Webhook").first().json.body.entryId;
@@ -113,7 +108,7 @@ const entryId = $("Webhook").first().json.body.entryId;
 return {
   json: {
     entryId: entryId,
-    sentiment: sentiment,
+    sentiment: parseFloat(sentiment.toFixed(2)),
   },
 };
 ```
