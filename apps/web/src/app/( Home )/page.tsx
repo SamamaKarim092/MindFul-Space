@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
 import Navbar from "@/app/components/home/Navbar";
-import HeroSection from "@/app/components/home/HeroSection";
-import FeaturesSection from "@/app/components/home/FeaturesSection";
+import Hero from "@/app/components/landing/Hero";
+import N8NAutomation from "@/app/components/landing/N8NAutomation";
+import Features from "@/app/components/landing/Features";
 import TechnologyUsed from "@/app/components/home/TechnologyUsed";
 
 export default function HomePage() {
@@ -27,11 +28,12 @@ export default function HomePage() {
   }
 
   return (
-    <>
+    <main className="bg-[#0F0714]">
       <Navbar />
-      <HeroSection />
+      <Hero />
+      <N8NAutomation />
+      <Features />
       <TechnologyUsed />
-      <FeaturesSection />
-    </>
+    </main>
   );
 }
