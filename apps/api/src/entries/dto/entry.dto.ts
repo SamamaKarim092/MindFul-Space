@@ -15,10 +15,20 @@ export class CreateEntryInput {
   @MinLength(1)
   content: string;
 
-  @Field(() => String, { defaultValue: 'NEUTRAL' })
+  @Field(() => String, { nullable: true })
   @IsEnum(Mood)
   @IsOptional()
   mood?: Mood;
+
+  @Field(() => String, { nullable: true })
+  @IsString()
+  @IsOptional()
+  customMoodLabel?: string;
+
+  @Field(() => [String], { defaultValue: [] })
+  @IsArray()
+  @IsOptional()
+  moodLabels?: string[];
 
   @Field(() => [String], { defaultValue: [] })
   @IsArray()
