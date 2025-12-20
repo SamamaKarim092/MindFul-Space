@@ -13,7 +13,9 @@ type Chat {
 
 input CreateEntryInput {
   content: String!
-  mood: String! = "NEUTRAL"
+  customMoodLabel: String
+  mood: String
+  moodLabels: [String!]! = []
   tags: [String!]! = []
   title: String!
 }
@@ -26,8 +28,10 @@ scalar DateTime
 type Entry {
   content: String!
   createdAt: DateTime!
+  customMoodLabel: String
   id: ID!
-  mood: Mood!
+  mood: Mood
+  moodLabels: [String!]!
   sentiment: Float
   tags: [String!]!
   title: String!
@@ -79,6 +83,10 @@ enum Mood {
   POSITIVE
 }
 
+type MoodSuggestions {
+  suggestions: [String!]!
+}
+
 type MoodTrend {
   averageSentiment: Float
   date: String!
@@ -110,6 +118,7 @@ type Query {
   moodTrends(days: Int! = 30): [MoodTrend!]!
   quotes(mood: String, type: String): [Quote!]!
   randomQuote(mood: String, type: String): Quote
+  suggestMood(content: String!): MoodSuggestions!
 }
 
 type Quote {
@@ -140,8 +149,10 @@ input UpdateChatTitleInput {
 
 input UpdateEntryInput {
   content: String
+  customMoodLabel: String
   id: String!
-  mood: String = "NEUTRAL"
+  mood: String
+  moodLabels: [String!] = []
   tags: [String!] = []
   title: String
 }
