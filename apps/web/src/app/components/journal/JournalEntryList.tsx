@@ -11,6 +11,8 @@ const GET_ENTRIES = gql`
       title
       content
       mood
+      customMoodLabel
+      moodLabels
       tags
       sentiment
       createdAt
@@ -93,7 +95,7 @@ export default function JournalEntryList() {
           return (
             <div
               key={entry.id}
-              className={`bg-white/5 border-l-4 ${moodColors[entry.mood as keyof typeof moodColors]} rounded-r-xl p-4 hover:bg-white/10 transition-all cursor-pointer group`}
+              className={`bg-white/5 border-l-4 ${entry.mood ? moodColors[entry.mood as keyof typeof moodColors] : "border-gray-500/50"} rounded-r-xl p-4 hover:bg-white/10 transition-all cursor-pointer group`}
             >
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-medium text-white group-hover:text-purple-300 transition-colors">
@@ -105,9 +107,16 @@ export default function JournalEntryList() {
                 {preview}
               </p>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs px-2 py-1 rounded-md bg-white/5 text-gray-400 border border-white/5">
-                  {moodLabels[entry.mood as keyof typeof moodLabels]}
-                </span>
+                {entry.moodLabels && entry.moodLabels.length > 0
+                  ? entry.moodLabels.map((label: string) => (
+                      <span
+                        key={label}
+                        className="text-xs px-2 py-1 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                      >
+                        {label}
+                      </span>
+                    ))
+                  : null}
                 {entry.tags.map((tag: string) => (
                   <span
                     key={tag}
