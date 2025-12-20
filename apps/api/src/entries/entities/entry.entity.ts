@@ -21,8 +21,14 @@ export class Entry {
   @Field()
   content: string;
 
-  @Field(() => Mood)
-  mood: Mood;
+  @Field(() => Mood, { nullable: true })
+  mood: Mood | null;
+
+  @Field(() => String, { nullable: true })
+  customMoodLabel: string | null;
+
+  @Field(() => [String])
+  moodLabels: string[];
 
   @Field(() => Float, { nullable: true })
   sentiment: number | null;
