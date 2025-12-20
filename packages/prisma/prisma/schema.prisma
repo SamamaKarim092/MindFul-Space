@@ -39,8 +39,10 @@ model Entry {
   userId    String          @map("user_id") @db.Uuid
   title     String
   content   String          @db.Text
-  mood      Mood            @default(NEUTRAL)
+  mood      Mood?           // Made optional - only set if hardcoded mood selected
   sentiment Float?          // AI-computed sentiment score (-1 to 1)
+  customMoodLabel String?   @map("custom_mood_label") // For AI-suggested custom moods
+  moodLabels String[]       @default([]) @map("mood_labels") // All selected mood labels
   tags      String[]        @default([])
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")
