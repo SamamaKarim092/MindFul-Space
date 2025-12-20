@@ -6,6 +6,13 @@ import { CreateEntryInput, UpdateEntryInput, EntryFilterInput } from './dto/entr
 import { AuthGuard } from '../auth/auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/auth.service';
+import { Field, ObjectType } from '@nestjs/graphql';
+
+@ObjectType()
+class MoodSuggestions {
+  @Field(() => [String])
+  suggestions: string[];
+}
 
 @Resolver(() => Entry)
 export class EntriesResolver {
@@ -78,5 +85,14 @@ export class EntriesResolver {
     @Args('days', { type: () => Int, defaultValue: 30 }) days: number,
   ): Promise<MoodTrend[]> {
     return this.entriesService.getMoodTrends(user.id, days);
+  }
+
+  @Query(() => MoodSuggestions, { name: 'suggestMood' })
+  @UseGuards(AuthGuard)
+  async suggestMood(
+    @Args('content') content: string,
+  ): Promise<MoodSuggestions> {
+    const suggestions = await this.entriesService.suggestMood(content);
+    return { suggestions };
   }
 }
