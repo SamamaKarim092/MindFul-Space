@@ -18,13 +18,19 @@ export class EntriesService {
     return this.configService.get<string>('N8N_WEBHOOK_URL');
   }
 
+  private get n8nMoodSuggestionUrl() {
+    return this.configService.get<string>('N8N_MOOD_SUGGESTION_URL');
+  }
+
   async create(userId: string, input: CreateEntryInput) {
     const entry = await this.prisma.entry.create({
       data: {
         userId,
         title: input.title,
         content: input.content,
-        mood: input.mood || Mood.NEUTRAL,
+        mood: input.mood || null,
+        customMoodLabel: input.customMoodLabel || null,
+        moodLabels: input.moodLabels || [],
         tags: input.tags || [],
       },
     });
@@ -203,4 +209,33 @@ export class EntriesService {
         : null,
     }));
   }
+
+  /**
+   * Get AI-powered mood suggestions for given text
+   * Calls n8n workflow synchronously and returns suggestions
+   */
+  async suggestMood(content: string): Promise<string[]> {
+    const webhookUrl = this.n8nMoodSuggestionUrl;
+    if (!webhookUrl) {
+      this.logger.warn('N8N_MOOD_SUGGESTION_URL not configured - returning empty suggestions');
+      return [];
+    }
+
+    try {
+      this.logger.log('Requesting AI mood suggestions from n8n');
+      const response = await axios.post(
+        webhookUrl,
+        { text: content },
+        { timeout: 5000 } // 5 second timeout
+      );
+
+      const suggestions = response.data?.suggestions || [];
+      this.logger.log(`Received ${suggestions.length} mood suggestions`);
+      return suggestions;
+    } catch (error) {
+      this.logger.error('Error getting mood suggestions from n8n:', error.message);
+      return [];
+    }
+  }
 }
+
