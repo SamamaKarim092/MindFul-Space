@@ -9,11 +9,11 @@ dist/
 out/
 
 # Environment files (NEVER commit these!)
-.env
-.env.local
-.env.*.local
-.env.development
-.env.production
+# .env
+# .env.local
+# .env.*.local
+# .env.development
+# .env.production
 apps/*/.env
 apps/*/.env.local
 packages/*/.env
@@ -49,3 +49,5 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# MCP
+.vscode/mcp.json
