@@ -9,9 +9,18 @@ import type { AuthUser } from '../auth/auth.service';
 import { Field, ObjectType } from '@nestjs/graphql';
 
 @ObjectType()
+class MoodSuggestion {
+  @Field(() => String)
+  label: string;
+
+  @Field(() => String)
+  color_category: string;
+}
+
+@ObjectType()
 class MoodSuggestions {
-  @Field(() => [String])
-  suggestions: string[];
+  @Field(() => [MoodSuggestion])
+  suggestions: MoodSuggestion[];
 }
 
 @Resolver(() => Entry)
@@ -91,8 +100,9 @@ export class EntriesResolver {
   @UseGuards(AuthGuard)
   async suggestMood(
     @Args('content') content: string,
+    @Args('title', { nullable: true }) title?: string,
   ): Promise<MoodSuggestions> {
-    const suggestions = await this.entriesService.suggestMood(content);
+    const suggestions = await this.entriesService.suggestMood(content, title);
     return { suggestions };
   }
 }
