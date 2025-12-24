@@ -83,8 +83,13 @@ enum Mood {
   POSITIVE
 }
 
+type MoodSuggestion {
+  color_category: String!
+  label: String!
+}
+
 type MoodSuggestions {
-  suggestions: [String!]!
+  suggestions: [MoodSuggestion!]!
 }
 
 type MoodTrend {
@@ -118,7 +123,7 @@ type Query {
   moodTrends(days: Int! = 30): [MoodTrend!]!
   quotes(mood: String, type: String): [Quote!]!
   randomQuote(mood: String, type: String): Quote
-  suggestMood(content: String!): MoodSuggestions!
+  suggestMood(content: String!, title: String): MoodSuggestions!
 }
 
 type Quote {
