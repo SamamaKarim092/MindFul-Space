@@ -1,6 +1,6 @@
 # n8n Mood Suggestion Workflow Setup Guide
 
-This guide explains how to create the **AI Mood Suggestion** workflow in n8n that returns multiple mood suggestions based on the user's text.
+This guide explains how to create the **AI Mood Suggestion** workflow in n8n that returns multiple mood suggestions **along with their color categories** based on the user's text.
 
 ## Workflow Structure
 
@@ -51,15 +51,15 @@ Webhook (POST) → HTTP Request (Groq/Llama) → Code Node (Parse) → Respond t
   "messages": [
     {
       "role": "system",
-      "content": "You are an expert mood and emotion analyzer. Your task is to carefully read what the user writes and infer their emotional state from the context and tone of their message.\n\nIMPORTANT GUIDELINES:\n- Analyze the CONTENT and CONTEXT of what they're describing, not just keywords\n- Consider what emotions someone would likely feel in the situation they describe\n- If they mention a negative situation, identify stress-related emotions\n- If they mention accomplishments, identify positive/productive emotions\n- Be nuanced - people can feel multiple emotions at once\n\nYou must return EXACTLY a JSON array with 4-5 specific mood words. Return ONLY the JSON array with NO other text.\n\nValid moods: Stressed, Frustrated, Overwhelmed, Exhausted, Anxious, Irritated, Burnt out, Drained, Accomplished, Relieved, Satisfied, Productive, Motivated, Content, Proud, Energized, Focused, Determined, Happy, Excited, Grateful, Peaceful, Calm, Hopeful, Restless, Nervous, Uncertain, Conflicted\n\nFormat: [\"Mood1\", \"Mood2\", \"Mood3\", \"Mood4\", \"Mood5\"]"
+      "content": "You are an expert in emotional intelligence and sentiment analysis. Your task is to analyze journal entries and identify the emotional states present.\n\nAnalyze the user's journal entry carefully and identify 3-5 distinct mood labels that best represent the emotions expressed.\n\nFor each mood label you identify, assign ONE color category from this exact list:\n- GREEN: happiness, contentment, peace, growth, satisfaction, hope, calm positivity\n- BLUE: sadness, melancholy, grief, loneliness, reflective calmness, pensiveness\n- YELLOW: excitement, energy, enthusiasm, motivation, nervousness, restlessness, anticipation\n- PURPLE: contemplation, spirituality, mystery, complexity, introspection, wonder\n- RED: anger, frustration, intensity, passion, irritation, agitation\n\nIMPORTANT FORMATTING RULES:\n1. Return ONLY a valid JSON array\n2. Do NOT include markdown code blocks or backticks\n3. Do NOT include any explanatory text\n4. Each object must have exactly two fields: \"label\" and \"color_category\"\n5. Use proper JSON syntax with double quotes\n\nExample of correct output format:\n[\n  {\"label\": \"Nostalgic\", \"color_category\": \"BLUE\"},\n  {\"label\": \"Determined\", \"color_category\": \"YELLOW\"},\n  {\"label\": \"Peaceful\", \"color_category\": \"GREEN\"}\n]"
     },
     {
       "role": "user",
-      "content": "{{ $json.body.text }}"
+      "content": "Please analyze this journal entry and identify the moods present:\n\n{{ $json.body.text }}"
     }
   ],
   "temperature": 0.3,
-  "max_tokens": 100
+  "max_tokens": 200
 }
 ```
 
@@ -71,8 +71,6 @@ Webhook (POST) → HTTP Request (Groq/Llama) → Code Node (Parse) → Respond t
 4. Enter exactly: `{{ $json.body.text }}`
 5. Verify it shows "EXPRESSION" mode, NOT "STATIC" mode
 6. **Save** the workflow
-
-**Common Error**: If you see "You haven't provided any text for me to analyze" in responses, it means the expression wasn't enabled. The expression must be dynamic, not static text!
 
 ---
 
@@ -91,30 +89,38 @@ console.log("Groq AI returned:", content);
 let suggestions = [];
 
 try {
-  // Try to parse as JSON array
-  suggestions = JSON.parse(content);
+  // Remove markdown code blocks and any extra whitespace
+  const cleanContent = content
+    .replace(/```json\n?/g, "")
+    .replace(/```\n?/g, "")
+    .trim();
+  
+  suggestions = JSON.parse(cleanContent);
 
-  // Validate that it's an array of strings
+  // Validate that it's an array
   if (!Array.isArray(suggestions)) {
     throw new Error("Response is not an array");
   }
 
-  // Clean up and validate suggestions
-  suggestions = suggestions
-    .filter((s) => typeof s === "string" && s.length > 0)
-    .map((s) => s.trim())
-    .slice(0, 5); // Limit to 5 suggestions
+  // Validate structure of each suggestion
+  suggestions = suggestions.filter(s => 
+    s && 
+    typeof s.label === 'string' && 
+    typeof s.color_category === 'string'
+  );
+
+  // Limit to 5 suggestions
+  suggestions = suggestions.slice(0, 5);
+  
+  // Final check - ensure we have at least one valid suggestion
+  if (suggestions.length === 0) {
+    throw new Error("No valid suggestions found");
+  }
 } catch (error) {
   console.error("Failed to parse AI response:", error);
-
-  // Fallback: Try to extract words from the response
-  const words = content.match(/[A-Z][a-z]+/g) || [];
-  suggestions = words.slice(0, 5);
-
-  // If still empty, default to generic mood
-  if (suggestions.length === 0) {
-    suggestions = ["Neutral"];
-  }
+  
+  // Fallback if parsing fails
+  suggestions = [{ label: "Reflective", color_category: "BLUE" }];
 }
 
 console.log("Final suggestions:", suggestions);
@@ -139,7 +145,11 @@ return {
 
 ```json
 {
-  "suggestions": ["Overwhelmed", "Stressed", "Exhausted", "Frustrated"]
+  "suggestions": [
+    { "label": "Overwhelmed", "color_category": "RED" },
+    { "label": "Exhausted", "color_category": "BLUE" },
+    { "label": "Stressed", "color_category": "YELLOW" }
+  ]
 }
 ```
 
@@ -150,54 +160,35 @@ return {
 ### Test 1: Positive Text
 
 **Input:**
-
 ```json
-{
-  "text": "I just crushed my workout at the gym!"
-}
+{ "text": "I just crushed my workout at the gym!" }
 ```
 
 **Expected Output:**
-
 ```json
 {
-  "suggestions": ["Accomplished", "Energized", "Proud", "Strong"]
+  "suggestions": [
+    { "label": "Accomplished", "color_category": "YELLOW" },
+    { "label": "Energized", "color_category": "YELLOW" },
+    { "label": "Proud", "color_category": "GREEN" }
+  ]
 }
 ```
 
 ### Test 2: Negative Text
 
 **Input:**
-
 ```json
-{
-  "text": "Had a rough day at office, feeling overwhelmed"
-}
+{ "text": "Had a rough day at office, feeling overwhelmed" }
 ```
 
 **Expected Output:**
-
 ```json
 {
-  "suggestions": ["Overwhelmed", "Stressed", "Exhausted", "Frustrated"]
-}
-```
-
-### Test 3: Mixed/Complex Text
-
-**Input:**
-
-```json
-{
-  "text": "Finished a big project but exhausted"
-}
-```
-
-**Expected Output:**
-
-```json
-{
-  "suggestions": ["Accomplished", "Drained", "Relieved", "Tired"]
+  "suggestions": [
+    { "label": "Overwhelmed", "color_category": "RED" },
+    { "label": "Drained", "color_category": "BLUE" }
+  ]
 }
 ```
 
@@ -210,24 +201,3 @@ Add this to your `apps/api/.env`:
 ```env
 N8N_MOOD_SUGGESTION_URL=http://localhost:5678/webhook/suggest-mood
 ```
-
----
-
-## How It Works in the App
-
-1. User types: **"Had a rough day at office, feeling overwhelmed"**
-2. Frontend waits 1 second (debounce)
-3. Checks keyword map first → No match
-4. Calls GraphQL query → Calls NestJS → Calls n8n webhook
-5. n8n sends to Groq AI → Returns: `["Overwhelmed", "Stressed", "Exhausted", "Frustrated"]`
-6. Frontend shows **4 NEW clickable mood chips** with sparkle icon
-7. User clicks **"Overwhelmed"** → Custom mood captured ✅
-
----
-
-## Performance Tips
-
-- **Timeout**: Set HTTP request timeout to 5 seconds
-- **Caching**: Consider caching similar text inputs (optional)
-- **Model**: Use `llama-3.3-70b-versatile` for best accuracy
-- **Temperature**: Keep at 0.3 for consistent results
