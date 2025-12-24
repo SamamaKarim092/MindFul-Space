@@ -12,8 +12,9 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { cn } from "@/lib/utils"; // Assuming utils exists, or I'll use clsx/tailwind-merge directly if not
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/context";
+import { useMood } from "@/app/context/MoodContext";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -28,11 +29,12 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const { signOut } = useAuth();
+  const { currentMood } = useMood();
 
   return (
-    <aside className="w-64 bg-[#0F0714] border-r border-white/10 text-white hidden md:flex flex-col h-screen sticky top-0">
+    <aside className="w-64 bg-black/20 backdrop-blur-2xl border-r border-white/10 text-white hidden md:flex flex-col h-screen sticky top-0">
       <div className="p-6">
-        <h1 className="text-2xl font-bold bg-linear-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+        <h1 className={`text-2xl font-bold transition-colors duration-500 ${currentMood.accent}`}>
           Mindful
         </h1>
       </div>
@@ -47,18 +49,18 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
                 isActive
-                  ? "bg-white/10 text-white shadow-lg shadow-purple-500/10"
+                  ? "bg-white/10 text-white"
                   : "text-gray-400 hover:bg-white/5 hover:text-white"
               )}
             >
               <Icon
                 className={cn(
-                  "w-5 h-5",
+                  "w-5 h-5 transition-colors duration-500",
                   isActive
-                    ? "text-purple-400"
-                    : "text-gray-400 group-hover:text-purple-400"
+                    ? currentMood.accent
+                    : `text-gray-400 group-hover:${currentMood.accent}`
                 )}
               />
               <span className="font-medium">{item.label}</span>
