@@ -49,5 +49,10 @@ These are the strategies we discussed to take the "Reflection" textbox to the ne
    - Implement a 5-10 second debounce to avoid hitting the AI too frequently.
    - Allow users to click the "Coach's Question" to insert it directly into their journal.
 
+## 📝 Documentation Update
+- **Created**: `IMMERSIVE_JOURNAL_DESIGN_PLAN.md` - A comprehensive guide for implementing the "Ambient Mesh Gradient" background system.
+- **Decision**: We chose to implement a **full-page, mood-reactive background** (including the sidebar) using a global Context and animated mesh gradients. This moves beyond component-level feedback to create an immersive "emotional environment."
+
+
 ---
 *Note: This file serves as the context for our next session. Mention this file to Gemini to resume immediately.*
