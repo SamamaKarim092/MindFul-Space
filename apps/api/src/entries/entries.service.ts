@@ -12,7 +12,7 @@ export class EntriesService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   private get n8nWebhookUrl() {
     return this.configService.get<string>('N8N_WEBHOOK_URL');
@@ -36,16 +36,16 @@ export class EntriesService {
     });
 
     // Trigger n8n workflow for sentiment analysis (non-blocking)
-    this.triggerSentimentAnalysis(entry.id, entry.content);
+    this.triggerSentimentAnalysis(entry.id, entry.content, entry.title);
 
     return entry;
   }
 
   /**
-   * Triggers n8n workflow for sentiment analysis
-   * This runs asynchronously and doesn't block the response
-   */
-  private async triggerSentimentAnalysis(entryId: string, content: string) {
+ * Triggers n8n workflow for sentiment analysis
+ * This runs asynchronously and doesn't block the response
+ */
+  private async triggerSentimentAnalysis(entryId: string, content: string, title?: string) {
     const webhookUrl = this.n8nWebhookUrl;
     if (!webhookUrl) {
       this.logger.warn('N8N_WEBHOOK_URL not configured - skipping sentiment analysis');
@@ -56,6 +56,7 @@ export class EntriesService {
       this.logger.log(`Triggering sentiment analysis for entry ${entryId} via ${webhookUrl}`);
       await axios.post(webhookUrl, {
         entryId,
+        title,
         content,
       });
       this.logger.log(`Successfully triggered sentiment analysis for entry ${entryId}`);
@@ -183,13 +184,13 @@ export class EntriesService {
 
     for (const entry of entries) {
       const dateKey = entry.createdAt.toISOString().split('T')[0];
-      
+
       if (!trendMap.has(dateKey)) {
         trendMap.set(dateKey, { positive: 0, neutral: 0, negative: 0, sentiments: [] });
       }
 
       const dayData = trendMap.get(dateKey)!;
-      
+
       if (entry.mood === Mood.POSITIVE) dayData.positive++;
       else if (entry.mood === Mood.NEUTRAL) dayData.neutral++;
       else if (entry.mood === Mood.NEGATIVE) dayData.negative++;
@@ -214,7 +215,7 @@ export class EntriesService {
    * Get AI-powered mood suggestions for given text
    * Calls n8n workflow synchronously and returns suggestions
    */
-  async suggestMood(content: string): Promise<string[]> {
+  async suggestMood(content: string, title?: string): Promise<Array<{ label: string; color_category: string }>> {
     const webhookUrl = this.n8nMoodSuggestionUrl;
     if (!webhookUrl) {
       this.logger.warn('N8N_MOOD_SUGGESTION_URL not configured - returning empty suggestions');
@@ -222,14 +223,38 @@ export class EntriesService {
     }
 
     try {
+      const payload = { 
+        text: content,
+        title: title || '',
+        content: content
+      };
       this.logger.log('Requesting AI mood suggestions from n8n');
+      this.logger.log('📤 Payload being sent to n8n:', JSON.stringify(payload, null, 2));
       const response = await axios.post(
         webhookUrl,
-        { text: content },
-        { timeout: 5000 } // 5 second timeout
+        payload,
+        { timeout: 10000 } // 10 second timeout
       );
 
-      const suggestions = response.data?.suggestions || [];
+      const raw = response.data?.suggestions || [];
+
+      // Normalize and validate the response
+      const suggestions = Array.isArray(raw)
+        ? raw
+          .map((item) => {
+            // If it's already an object with label and color_category, use it
+            if (item && typeof item.label === 'string' && typeof item.color_category === 'string') {
+              return { label: item.label, color_category: item.color_category };
+            }
+            // If it's a string, default to PURPLE for unknown moods
+            if (typeof item === 'string') {
+              return { label: item, color_category: 'PURPLE' };
+            }
+            return null;
+          })
+          .filter((v): v is { label: string; color_category: string } => Boolean(v))
+        : [];
+
       this.logger.log(`Received ${suggestions.length} mood suggestions`);
       return suggestions;
     } catch (error) {
