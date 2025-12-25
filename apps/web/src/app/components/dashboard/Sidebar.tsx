@@ -11,6 +11,7 @@ import {
   User,
   Settings,
   LogOut,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth/context";
@@ -19,6 +20,7 @@ import { useMood } from "@/app/context/MoodContext";
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Book, label: "Journal", href: "/dashboard/journal" },
+  { icon: MessageCircle, label: "AI Coach", href: "/dashboard/chat" },
   { icon: FileText, label: "Entries", href: "/dashboard/entries" },
   { icon: TrendingUp, label: "Trends", href: "/dashboard/trends" },
   { icon: BrainCircuit, label: "Analysis", href: "/dashboard/analysis" },
