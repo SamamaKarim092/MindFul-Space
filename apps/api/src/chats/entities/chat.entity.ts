@@ -35,6 +35,9 @@ export class Chat {
   @Field()
   title: string;
 
+  @Field(() => String, { nullable: true })
+  contextEntryId?: string | null;
+
   @Field(() => [Message])
   messages: Message[];
 
