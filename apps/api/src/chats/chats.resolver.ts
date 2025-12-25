@@ -10,7 +10,7 @@ import type { AuthUser } from '../auth/auth.service';
 @Resolver(() => Chat)
 @UseGuards(AuthGuard)
 export class ChatsResolver {
-  constructor(private readonly chatsService: ChatsService) {}
+  constructor(private readonly chatsService: ChatsService) { }
 
   @Mutation(() => Chat)
   async sendMessage(
@@ -47,5 +47,13 @@ export class ChatsResolver {
     @CurrentUser() user: AuthUser,
   ): Promise<Chat> {
     return this.chatsService.remove(id, user.id);
+  }
+
+  @Mutation(() => Chat)
+  async startContextualChat(
+    @Args('entryId') entryId: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<Chat> {
+    return this.chatsService.startContextualChat(user.id, entryId);
   }
 }
