@@ -50,6 +50,7 @@ model Entry {
   // Relations
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   attachments Attachment[]
+  chats       Chat[]        // Chats started from this entry
 
   @@index([userId])
   @@index([createdAt])
@@ -87,18 +88,21 @@ model Attachment {
 // Migrated from MongoDB Chat model
 // ============================================
 model Chat {
-  id        String    @id @default(uuid()) @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  title     String    @default("New Chat")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  title          String    @default("New Chat")
+  contextEntryId String?   @map("context_entry_id") @db.Uuid  // Links to journal entry that started this chat
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages Message[]
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contextEntry Entry?    @relation(fields: [contextEntryId], references: [id], onDelete: SetNull)
+  messages     Message[]
 
   @@index([userId])
   @@index([createdAt])
+  @@index([contextEntryId])
   @@map("chats")
 }
 
