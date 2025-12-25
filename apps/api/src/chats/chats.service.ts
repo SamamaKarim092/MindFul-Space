@@ -12,7 +12,7 @@ export class ChatsService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   async sendMessage(userId: string, input: SendMessageInput) {
     let chatId = input.chatId;
@@ -77,9 +77,52 @@ export class ChatsService {
   }
 
   private async getAIResponse(chatId: string, userMessage: string): Promise<string> {
-    // Placeholder AI response - will be replaced with actual AI integration
-    // This will be handled by n8n workflow calling OpenAI/Gemini
-    return `I received your message: "${userMessage.substring(0, 100)}..." I'm here to support your mental health journey. This is a placeholder response - AI integration will be configured via n8n.`;
+    // Call n8n AI Chat workflow for AI response
+    const n8nWebhookUrl = this.configService.get<string>('N8N_WEBHOOK_URL') || 'http://localhost:5678';
+
+    try {
+      // Get chat history for context
+      const chat = await this.prisma.chat.findUnique({
+        where: { id: chatId },
+        include: {
+          messages: { orderBy: { createdAt: 'asc' }, take: 10 },
+          contextEntry: true,
+        },
+      });
+
+      // Format chat history for n8n
+      const chatHistory = chat?.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+      })) || [];
+
+      // Prepare context entry if exists
+      const contextEntry = chat?.contextEntry ? {
+        title: chat.contextEntry.title,
+        content: chat.contextEntry.content,
+        moodLabels: chat.contextEntry.moodLabels,
+      } : undefined;
+
+      const response = await fetch(`${n8nWebhookUrl}/webhook/ai-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMessage,
+          chatHistory,
+          contextEntry,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`n8n webhook error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response || "I'm here to listen. Could you tell me more?";
+    } catch (error) {
+      console.error('Error calling n8n for AI response:', error);
+      return "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.";
+    }
   }
 
   async findAll(userId: string) {
@@ -130,4 +173,100 @@ export class ChatsService {
       include: { messages: true },
     });
   }
+
+  async startContextualChat(userId: string, entryId: string) {
+    // Fetch the journal entry for context
+    const entry = await this.prisma.entry.findUnique({
+      where: { id: entryId },
+    });
+
+    if (!entry) {
+      throw new NotFoundException('Entry not found');
+    }
+
+    if (entry.userId !== userId) {
+      throw new ForbiddenException('Access denied');
+    }
+
+    // Create a new chat linked to this entry
+    const chat = await this.prisma.chat.create({
+      data: {
+        userId,
+        contextEntryId: entryId,
+        title: `Chat: ${entry.title.substring(0, 30)}${entry.title.length > 30 ? '...' : ''}`,
+      },
+    });
+
+    // Generate contextual opening message
+    const openingMessage = await this.getContextualOpening(entry);
+
+    // Save the AI opening message
+    await this.prisma.message.create({
+      data: {
+        chatId: chat.id,
+        role: MessageRole.AI,
+        content: openingMessage,
+      },
+    });
+
+    // Return chat with messages
+    const chatWithMessages = await this.prisma.chat.findUnique({
+      where: { id: chat.id },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
+    });
+
+    if (!chatWithMessages) {
+      throw new NotFoundException('Chat not found after creation');
+    }
+
+    return chatWithMessages;
+  }
+
+  private async getContextualOpening(entry: { title: string; content: string; moodLabels: string[] }): Promise<string> {
+    // Call n8n AI Chat workflow for AI-generated contextual opening
+    const n8nWebhookUrl = this.configService.get<string>('N8N_WEBHOOK_URL') || 'http://localhost:5678';
+
+    try {
+      const response = await fetch(`${n8nWebhookUrl}/webhook/ai-chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: "Start a supportive conversation about my journal entry. Acknowledge what I wrote and ask a thoughtful follow-up question.",
+          chatHistory: [],
+          contextEntry: {
+            title: entry.title,
+            content: entry.content,
+            moodLabels: entry.moodLabels,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`n8n webhook error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response || this.getFallbackOpening(entry);
+    } catch (error) {
+      console.error('Error calling n8n for contextual opening:', error);
+      return this.getFallbackOpening(entry);
+    }
+  }
+
+  private getFallbackOpening(entry: { title: string; content: string; moodLabels: string[] }): string {
+    const moodText = entry.moodLabels.length > 0
+      ? `I noticed you're feeling ${entry.moodLabels.join(', ').toLowerCase()}.`
+      : '';
+
+    const contentPreview = entry.content.length > 100
+      ? entry.content.substring(0, 100) + '...'
+      : entry.content;
+
+    return `I see you were writing about "${entry.title}". ${moodText}
+
+${contentPreview ? `You mentioned: "${contentPreview}"` : ''}
+
+I'm here to listen and help you explore these thoughts. What aspect of this would you like to talk about first?`;
+  }
 }
+
