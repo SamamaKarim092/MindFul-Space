@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useMood } from "@/app/context/MoodContext";
 import {
   Smile,
@@ -16,6 +17,7 @@ import {
 } from "lucide-react";
 import { gql, useMutation, useLazyQuery } from "@apollo/client";
 import { detectMoodFromText } from "@/lib/mood-detection";
+import CoachBubble from "./CoachBubble";
 
 const SUGGEST_MOOD = gql`
   query SuggestMood($content: String!, $title: String) {
@@ -138,6 +140,7 @@ const REFLECTION_PROMPTS = [
 ];
 
 export default function JournalEditor() {
+  const router = useRouter();
   const { currentMood, setMood, setMoods, setMoodByColorCategory } = useMood();
   const [selectedMoods, setSelectedMoods] = useState<
     Array<(typeof moods)[0] & { color_category?: string; animation?: string }>
@@ -153,6 +156,11 @@ export default function JournalEditor() {
   >([]);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [currentPrompt, setCurrentPrompt] = useState(REFLECTION_PROMPTS[0]);
+  
+  // Coach Bubble state
+  const [showCoachBubble, setShowCoachBubble] = useState(false);
+  const [coachSuggestion, setCoachSuggestion] = useState("");
+  const [detectedEmotion, setDetectedEmotion] = useState("");
 
   const [getSuggestMood] = useLazyQuery(SUGGEST_MOOD);
 
@@ -160,6 +168,17 @@ export default function JournalEditor() {
 
   // Sync with global mood and dispatch events
   useEffect(() => {
+    // Map color categories to companion mood names
+    const colorCategoryToCompanionMood: Record<string, string> = {
+      YELLOW: "HAPPY",
+      BLUE: "SAD",
+      ORANGE: "ENERGETIC",
+      PURPLE: "ANXIOUS",
+      GREEN: "HAPPY",
+      PINK: "GRATEFUL",
+      RED: "ENERGETIC",
+    };
+
     if (selectedMoods.length > 0) {
       // For each selected mood, check if it has a color_category (AI mood)
       // If it does, use setMoodByColorCategory, otherwise use label
@@ -168,6 +187,12 @@ export default function JournalEditor() {
       if (primaryMood.color_category) {
         // AI mood with color category - use it for background
         setMoodByColorCategory(primaryMood.label, primaryMood.color_category);
+        
+        // Dispatch event with the MAPPED mood name for companion
+        const companionMood = colorCategoryToCompanionMood[primaryMood.color_category] || "NEUTRAL";
+        window.dispatchEvent(
+          new CustomEvent("moodUpdate", { detail: { mood: companionMood } })
+        );
       } else {
         // Regular hardcoded mood
         const moodLabels = selectedMoods
@@ -176,12 +201,12 @@ export default function JournalEditor() {
         if (moodLabels.length > 0) {
           setMoods(moodLabels);
         }
+        
+        // Dispatch event with primary mood label
+        window.dispatchEvent(
+          new CustomEvent("moodUpdate", { detail: { mood: primaryMood.label } })
+        );
       }
-
-      // Dispatch event with primary mood
-      window.dispatchEvent(
-        new CustomEvent("moodUpdate", { detail: { mood: primaryMood.label } })
-      );
     } else if (suggestedMood) {
       // If no moods selected but there's a suggestion, use it
       setMood(suggestedMood);
@@ -346,6 +371,86 @@ export default function JournalEditor() {
     }
   };
 
+  // Handle "Wanna talk about it?" - save and redirect to chat
+  const handleTalkAboutIt = async () => {
+    if (!title.trim() && !content.trim()) {
+      // Nothing to talk about yet
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Prepare entry data
+      const tagsArray = tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      const moodLabels = selectedMoods.map((m) => m.label);
+      const customMoodLabel = selectedMoods.find(
+        (m) =>
+          m.value === "NEUTRAL" &&
+          !moods.some((hardcoded) => hardcoded.label === m.label)
+      )?.label;
+      const hardcodedMood = selectedMoods.find((m) =>
+        moods.some((hardcoded) => hardcoded.label === m.label)
+      );
+
+      // Save the entry first
+      const { data } = await createEntry({
+        variables: {
+          input: {
+            title: title.trim() || "Untitled Entry",
+            content: content.trim() || "No content yet...",
+            mood: hardcodedMood ? hardcodedMood.value : undefined,
+            customMoodLabel: customMoodLabel || null,
+            moodLabels: moodLabels,
+            tags: tagsArray,
+          },
+        },
+      });
+
+      // Redirect to chat with entry context
+      if (data?.createEntry?.id) {
+        router.push(`/dashboard/chat?contextEntryId=${data.createEntry.id}`);
+      }
+    } catch (err) {
+      console.error("Error saving entry for chat:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Show coach bubble when emotional content is detected
+  useEffect(() => {
+    if (aiSuggestions.length > 0 && content.length > 50) {
+      // Check if any detected mood suggests the user might want to talk
+      const emotionalMoods = ["SAD", "ANXIOUS", "STRESSED", "OVERWHELMED", "WORRIED", "SCARED"];
+      const hasEmotionalMood = aiSuggestions.some((s) =>
+        emotionalMoods.some((em) => s.label.toUpperCase().includes(em))
+      );
+
+      // Also show for any mood after enough content
+      if (hasEmotionalMood || (content.length > 100 && selectedMoods.length > 0)) {
+        const primaryMood = selectedMoods[0]?.label || aiSuggestions[0]?.label || "something";
+        const suggestions: Record<string, string> = {
+          SAD: "It sounds like you're going through a tough time. Sometimes talking it out can help.",
+          ANXIOUS: "I can sense some worry in your words. Would you like to explore these feelings together?",
+          STRESSED: "That sounds really stressful. Sometimes it helps to talk through what's weighing on you.",
+          default: `It seems like you have a lot on your mind about feeling ${primaryMood.toLowerCase()}. I'm here if you want to chat.`,
+        };
+
+        const matchedEmotion = Object.keys(suggestions).find(
+          (key) => key !== "default" && primaryMood.toUpperCase().includes(key)
+        );
+        
+        setCoachSuggestion(suggestions[matchedEmotion || "default"]);
+        setDetectedEmotion(primaryMood);
+        setShowCoachBubble(true);
+      }
+    }
+  }, [aiSuggestions, content.length, selectedMoods]);
+
   return (
     <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
       <div className="flex items-center justify-between mb-8">
@@ -407,6 +512,17 @@ export default function JournalEditor() {
                       key={`${label}-${index}`}
                       type="button"
                       onClick={() => {
+                        // Map hardcoded mood labels to their proper color categories
+                        const moodToColorCategory: Record<string, string> = {
+                          Happy: "YELLOW",
+                          Neutral: "PURPLE",
+                          Sad: "BLUE",
+                          Anxious: "PURPLE",
+                          Energetic: "ORANGE",
+                          Calm: "GREEN",
+                          Grateful: "PINK",
+                        };
+
                         if (matchingMood) {
                           // Toggle hardcoded mood
                           if (selectedMoods.find((m) => m.label === label)) {
@@ -414,8 +530,9 @@ export default function JournalEditor() {
                               selectedMoods.filter((m) => m.label !== label)
                             );
                           } else {
-                            // Make this the PRIMARY mood (first) so its color_category is used
-                            const moodWithColor = { ...matchingMood, color_category };
+                            // Use the CORRECT color category for the matching hardcoded mood
+                            const correctColorCategory = moodToColorCategory[matchingMood.label] || color_category;
+                            const moodWithColor = { ...matchingMood, color_category: correctColorCategory };
                             setSelectedMoods([
                               moodWithColor,
                               ...selectedMoods.filter((m) => m.label !== label),
@@ -618,6 +735,16 @@ export default function JournalEditor() {
           </button>
         </div>
       </form>
+
+      {/* Coach Bubble - appears when emotional content is detected */}
+      <CoachBubble
+        suggestion={coachSuggestion}
+        emotion={detectedEmotion}
+        onTalkClick={handleTalkAboutIt}
+        onDismiss={() => setShowCoachBubble(false)}
+        isVisible={showCoachBubble}
+        isLoading={isSaving}
+      />
     </div>
   );
 }
