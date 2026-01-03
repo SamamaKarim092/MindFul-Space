@@ -4,7 +4,6 @@
 
 🔗 **Live Demo**:  
 👉 https://mental-health-sentiment-journal.onrender.com/
-
 ---
 
 ## 📌 Key Features
