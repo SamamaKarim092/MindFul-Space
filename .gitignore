@@ -9,11 +9,15 @@ dist/
 out/
 
 # Environment files (NEVER commit these!)
-# .env
-# .env.local
-# .env.*.local
-# .env.development
-# .env.production
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+.env.example.local
+*.env
+*.env.local
 apps/*/.env
 apps/*/.env.local
 packages/*/.env
@@ -51,3 +55,6 @@ coverage/
 
 # MCP
 .vscode/mcp.json
+
+# AI Agents
+.agents/
