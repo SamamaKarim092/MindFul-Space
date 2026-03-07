@@ -4,10 +4,11 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   ReactNode,
 } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient, hasSupabaseBrowserEnv } from "@/lib/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -18,7 +19,7 @@ interface AuthContextType {
   signUp: (
     email: string,
     password: string,
-    name?: string
+    name?: string,
   ) => Promise<{ error: Error | null }>;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -29,11 +30,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(hasSupabaseBrowserEnv());
 
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -51,9 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
+
+  const getUnavailableError = () =>
+    new Error(
+      "Supabase environment variables are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+    );
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) {
+      return { error: getUnavailableError() };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -62,6 +77,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, name?: string) => {
+    if (!supabase) {
+      return { error: getUnavailableError() };
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -75,6 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    if (!supabase) {
+      return { error: getUnavailableError() };
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -85,6 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!supabase) {
+      return;
+    }
+
     await supabase.auth.signOut();
   };
 
