@@ -22,7 +22,20 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+::selection {
+  background: rgba(168, 85, 247, 0.18);
+  color: #111827;
+}
+
+.text-balance {
+  text-wrap: balance;
 }
 
 /* Custom Scrollbar */
@@ -91,7 +104,8 @@ body {
 
 /* Mood Icon Animations */
 @keyframes heartbeat {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   14% {
@@ -109,7 +123,8 @@ body {
 }
 
 @keyframes bounce-gentle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -118,7 +133,8 @@ body {
 }
 
 @keyframes shake-subtle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateX(0);
   }
   25% {
@@ -130,7 +146,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -141,7 +158,8 @@ body {
 }
 
 @keyframes breathe {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -150,7 +168,8 @@ body {
 }
 
 @keyframes drop-tear {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
