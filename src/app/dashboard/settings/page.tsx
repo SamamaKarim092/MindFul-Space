@@ -32,6 +32,12 @@ export default function SettingsPage() {
     setSaved(false);
     try {
       const supabase = createClient();
+      if (!supabase) {
+        throw new Error(
+          "Supabase environment variables are missing. Profile updates are unavailable.",
+        );
+      }
+
       await supabase.auth.updateUser({
         data: { display_name: displayName },
       });
@@ -51,6 +57,12 @@ export default function SettingsPage() {
     setPasswordError("");
     try {
       const supabase = createClient();
+      if (!supabase) {
+        throw new Error(
+          "Supabase environment variables are missing. Password updates are unavailable.",
+        );
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
