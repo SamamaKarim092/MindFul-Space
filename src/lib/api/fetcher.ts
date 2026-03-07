@@ -21,8 +21,9 @@ export async function apiFetch<T = any>(
   options: RequestInit = {}
 ): Promise<T> {
   const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  const token = supabase
+    ? (await supabase.auth.getSession()).data.session?.access_token
+    : null;
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
