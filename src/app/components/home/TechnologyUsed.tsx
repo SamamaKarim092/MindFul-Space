@@ -7,8 +7,8 @@ import {
   SiPrisma,
   SiSupabase,
   SiN8N,
+  SiVercel,
 } from "react-icons/si";
-import { TbBolt } from "react-icons/tb";
 
 const techLogos = [
   {
@@ -47,47 +47,70 @@ const techLogos = [
     href: "https://n8n.io",
   },
   {
-    node: <TbBolt className="text-[#F55036]" />,
-    title: "Groq AI",
-    href: "https://groq.com",
+    node: <SiVercel className="text-slate-950" />,
+    title: "Vercel",
+    href: "https://vercel.com",
   },
 ];
 
 export default function TechnologyUsed() {
   return (
-    <div className="relative bg-[#110816] py-24 sm:py-32 overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[20%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[20%] w-[500px] h-[500px] rounded-full bg-purple-500/10 blur-[100px]" />
-      </div>
+    <section id="trust" className="relative py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+        <div className="overflow-hidden rounded-[36px] border border-slate-900/10 bg-white/75 p-8 shadow-[0_26px_90px_rgba(148,163,184,0.18)] backdrop-blur-sm sm:p-10">
+          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-end">
+            <div>
+              <p className="text-sm font-medium uppercase tracking-[0.3em] text-slate-500">
+                Trust and proof
+              </p>
+              <h2 className="mt-4 max-w-md text-balance text-3xl font-semibold text-slate-950 sm:text-4xl">
+                Modern foundations for a product that handles deeply personal
+                moments.
+              </h2>
+              <p className="mt-4 max-w-lg text-base leading-7 text-slate-600">
+                The landing experience should feel emotional and beautiful, but
+                it also needs credibility. These technologies support the speed,
+                security, and reliability behind the product.
+              </p>
+            </div>
 
-      <div className="relative mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-4">
-            Powered by Modern Tech
-          </h2>
-          <p className="text-lg leading-8 text-gray-400">
-            Built with a robust stack to ensure a secure, fast, and reliable
-            experience for your mental health journey.
-          </p>
-        </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {[
+                { label: "Auth + storage", value: "Supabase" },
+                { label: "Structured data", value: "Prisma + Postgres" },
+                { label: "Deployment", value: "Next.js + Vercel" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-[28px] border border-slate-900/10 bg-slate-50 px-5 py-6"
+                >
+                  <p className="text-sm text-slate-500">{item.label}</p>
+                  <p className="mt-3 text-lg font-semibold text-slate-950">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-        <div className="relative h-32 flex items-center">
-          <LogoLoop
-            logos={techLogos}
-            speed={40}
-            direction="left"
-            logoHeight={50}
-            gap={80}
-            hoverSpeed={0}
-            scaleOnHover
-            fadeOut={true}
-            fadeOutColor="#0B1120"
-            ariaLabel="Technology partners"
-          />
+          <div className="mt-10 rounded-[28px] border border-slate-900/10 bg-[#f8f5f1] px-4 py-6 sm:px-6">
+            <div className="relative flex h-28 items-center">
+              <LogoLoop
+                logos={techLogos}
+                speed={40}
+                direction="left"
+                logoHeight={44}
+                gap={72}
+                hoverSpeed={0}
+                scaleOnHover
+                fadeOut
+                fadeOutColor="#f8f5f1"
+                ariaLabel="Technology partners"
+              />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }
