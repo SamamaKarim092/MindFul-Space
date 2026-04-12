@@ -12,15 +12,19 @@ import ImpactNumbers from "@/app/components/landing/ImpactNumbers";
 import FinalCTA from "@/app/components/landing/FinalCTA";
 
 export default function HomePage() {
+  // Read the current auth state so the page knows whether to keep the user here or redirect.
   const { user, loading } = useAuth();
+  // Next.js router used for programmatic navigation.
   const router = useRouter();
 
   useEffect(() => {
+    // If the user is already signed in, send them straight to the dashboard.
     if (!loading && user) {
       router.push("/dashboard");
     }
   }, [user, loading, router]);
 
+  // Show a simple loading screen while Supabase is checking the session.
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -30,6 +34,7 @@ export default function HomePage() {
   }
 
   return (
+    // Public landing page shown only when the user is not already authenticated.
     <main className="bg-[#f6f1eb] text-slate-950">
       <Navbar />
 
