@@ -1,3 +1,8 @@
+// This file keeps the frontend auth state in one shared place.
+// It checks whether a user is already signed in, stores the current user/session,
+// and gives the app sign-in, sign-up, Google sign-in, and sign-out functions.
+// Any page or component can read this data with useAuth() instead of checking auth on its own.
+
 "use client";
 
 import {
@@ -28,10 +33,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // Store the current user and session for the whole frontend app.
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(hasSupabaseBrowserEnv());
 
+  // Create one Supabase client for browser-side auth work.
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -40,14 +47,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // Get initial session
+    // Check whether the user already has a valid session when the app loads.
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Keep the auth state updated when the user signs in or signs out.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -64,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       "Supabase environment variables are missing. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
     );
 
+  // Email/password sign-in used by the login form.
   const signIn = async (email: string, password: string) => {
     if (!supabase) {
       return { error: getUnavailableError() };
@@ -76,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  // Creates a new account and stores the user's name in Supabase metadata.
   const signUp = async (email: string, password: string, name?: string) => {
     if (!supabase) {
       return { error: getUnavailableError() };
@@ -93,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  // Starts Google OAuth login.
   const signInWithGoogle = async () => {
     if (!supabase) {
       return { error: getUnavailableError() };
@@ -107,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
+  // Clears the current session from Supabase.
   const signOut = async () => {
     if (!supabase) {
       return;
@@ -117,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
+      // Make auth data and actions available to every component inside the app.
       value={{
         user,
         session,
@@ -133,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
+  // Read the shared auth state from the nearest AuthProvider.
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");
