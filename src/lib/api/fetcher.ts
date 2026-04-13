@@ -1,5 +1,6 @@
-// Authenticated fetch wrapper for API calls
-// Automatically attaches Supabase auth token
+// Purpose: make frontend API calls easier and safer.
+// This helper automatically adds the logged-in user's Supabase Bearer token,
+// sends JSON requests, and handles API errors in one shared place.
 
 import { createClient } from '@/lib/supabase/client';
 
