@@ -1,5 +1,6 @@
-// Auth helper for API routes
-// Extracts and validates Supabase JWT, finds/creates user in DB
+// Purpose: protect API routes by verifying the Bearer token with Supabase.
+// This file reads the request auth header, checks the token, and then finds or
+// creates the matching user in Prisma so backend routes can trust the caller.
 
 import { createClient } from '@supabase/supabase-js';
 import { prisma } from '@/lib/prisma';
@@ -13,6 +14,7 @@ export interface AuthUser {
 let supabaseAdmin: ReturnType<typeof createClient> | null = null;
 
 function getSupabaseAdmin() {
+  // Reuse one admin client instead of creating a new one on every request.
   if (!supabaseAdmin) {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -30,16 +32,19 @@ function getSupabaseAdmin() {
  * Returns the authenticated user or throws an error.
  */
 export async function getAuthUser(request: Request): Promise<AuthUser> {
+  // Read the auth header that should contain: Authorization: Bearer <token>.
   const authHeader = request.headers.get('authorization');
   if (!authHeader) {
     throw new AuthError('No authorization header');
   }
 
+  // Split the header into its type and token value.
   const [type, token] = authHeader.split(' ');
   if (type !== 'Bearer' || !token) {
     throw new AuthError('Invalid authorization format');
   }
 
+  // Ask Supabase whether the token is valid and belongs to a real user.
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user?.id) {
@@ -48,12 +53,11 @@ export async function getAuthUser(request: Request): Promise<AuthUser> {
 
   const supabaseUser = data.user;
 
-  // Find or create user in our database
+  // Sync the Supabase user with the local Prisma user table.
   let user = await prisma.user.findUnique({ where: { id: supabaseUser.id } });
 
   if (!user) {
-    // email may be null or absent for phone/OAuth users.
-    // We provide a fallback unique string since the Prisma schema requires an email.
+    // Some auth providers may not give an email, so create a safe fallback value.
     user = await prisma.user.create({
       data: {
         id: supabaseUser.id,
