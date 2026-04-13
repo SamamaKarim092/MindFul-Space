@@ -1,5 +1,6 @@
-// Mutation helper functions for POST/PATCH/DELETE operations
-// These call the REST API and trigger SWR revalidation
+// Purpose: group all frontend actions that change data, like create, update,
+// and delete. This file sends authenticated API requests and refreshes the UI
+// afterward so the screen always shows the latest data.
 
 import { apiFetch } from './fetcher';
 import { mutate } from 'swr';
