@@ -1,5 +1,6 @@
-// Prisma Schema for Mental Health Journal
-// Based on migration from MongoDB to Supabase PostgreSQL
+// Prisma schema for the Mental Health Journal app.
+// This file defines the database structure: tables, fields, relations, and enums.
+// Prisma uses it to generate the client that the backend uses to read and write data.
 
 generator client {
   provider = "prisma-client-js"
@@ -11,10 +12,8 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ============================================
-// USER MODEL
-// Synced with Supabase Auth - uses same UUID
-// ============================================
+// Users are shared between Supabase Auth and this database.
+// Each user can have many journal entries and chats.
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   email     String   @unique
@@ -30,10 +29,8 @@ model User {
   @@map("users")
 }
 
-// ============================================
-// JOURNAL ENTRY MODEL
-// Migrated from MongoDB Entry model
-// ============================================
+// A journal entry belongs to one user.
+// It stores the text, mood, sentiment, tags, and optional custom mood labels.
 model Entry {
   id        String          @id @default(uuid()) @db.Uuid
   userId    String          @map("user_id") @db.Uuid
@@ -58,15 +55,15 @@ model Entry {
   @@map("entries")
 }
 
+// Basic mood groups used across the app.
 enum Mood {
   POSITIVE
   NEUTRAL
   NEGATIVE
 }
 
-// ============================================
-// ATTACHMENT MODEL (for Supabase Storage)
-// ============================================
+// Attachments store file metadata for files linked to a journal entry.
+// The actual file lives in Supabase Storage; the database stores the reference.
 model Attachment {
   id        String   @id @default(uuid()) @db.Uuid
   entryId   String   @map("entry_id") @db.Uuid
@@ -83,10 +80,8 @@ model Attachment {
   @@map("attachments")
 }
 
-// ============================================
-// CHAT MODEL
-// Migrated from MongoDB Chat model
-// ============================================
+// A chat belongs to one user and can optionally be tied to one journal entry.
+// That lets the app start a conversation from a specific journal entry.
 model Chat {
   id             String    @id @default(uuid()) @db.Uuid
   userId         String    @map("user_id") @db.Uuid
@@ -106,10 +101,8 @@ model Chat {
   @@map("chats")
 }
 
-// ============================================
-// MESSAGE MODEL (embedded in Chat in MongoDB)
-// Now separate table with relation
-// ============================================
+// Messages belong to a chat.
+// This separate table makes it easier to store full conversation history.
 model Message {
   id        String      @id @default(uuid()) @db.Uuid
   chatId    String      @map("chat_id") @db.Uuid
@@ -125,16 +118,14 @@ model Message {
   @@map("messages")
 }
 
+// Role of each message in a chat conversation.
 enum MessageRole {
   USER
   AI
   SYSTEM
 }
 
-// ============================================
-// QUOTE MODEL
-// Migrated from MongoDB Quote model
-// ============================================
+// Quotes and tips shown in the app.
 model Quote {
   id        String    @id @default(uuid()) @db.Uuid
   text      String    @db.Text
@@ -147,6 +138,7 @@ model Quote {
   @@map("quotes")
 }
 
+// Different kinds of quote content used by the app.
 enum QuoteType {
   QUOTE
   TIP
