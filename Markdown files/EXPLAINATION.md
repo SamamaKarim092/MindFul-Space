@@ -140,3 +140,53 @@ That means if the user is already signed in and tries to open protected pages li
 - The dashboard and login protection are handled by the server proxy _before_ the page loads.
 
 If you want to remove the flicker completely for a page, the redirect needs to happen on the server instead of waiting for the client.
+
+---
+
+## 6. The Supabase Connection Folder (`src/lib/supabase`)
+
+The code inside `src/lib/supabase` contains three files: `client.ts`, `proxy.ts`, and `server.ts`. This folder represents the "Day 1 Setup" for the app and contains official boilerplate code recommended directy by Supabase's Next.js documentation.
+
+### Why do we need `@supabase/ssr`?
+
+Normally, if you use standard Supabase in a standard React app, it saves your login session inside the browser's `localStorage`. However, Next.js also runs code on the **server** (like API routes or the proxy middleware), and the server cannot read a browser's `localStorage`!
+
+To fix this, we use the package `@supabase/ssr` (Server-Side Rendering). It forces Supabase to save your login tokens entirely inside **Cookies** instead of local storage. Browsers automatically attach cookies to every HTTP request they send, meaning both the frontend and the backend instantly share the exact same login state.
+
+### 1. `client.ts` (The Frontend "Speed Dial")
+
+- **What it does:** It creates the Supabase connection specifically for the user's browser.
+- **Why we need it:** Instead of rewriting the complex connection setup in 50 different buttons (`"Like"`, `"Save"`, `"Delete"`), we write it exactly once here. Any component can just import `createClient()` to easily drop data into the database.
+- **Safety Feature:** It has a `hasSupabaseBrowserEnv()` check so that if the `.env` environment variables are accidentally deleted or missing, the app gracefully returns `null` instead of immediately crashing the browser with ugly red errors.
+
+### 2. `proxy.ts` (The Server-Side "Bouncer")
+
+- **What it does:** It acts as Edge Middleware. It runs on the server **before** a page finishes loading or rendering to the user, reading the cookies shipped by `@supabase/ssr` to verify identity.
+- **Why we need it:**
+  1. It actively protects private pages (e.g., instantly kicks a user from `/dashboard` if they aren't logged in).
+  2. It redirects already-logged-in users away from the `/login` page back to the dashboard.
+  3. It explicitly skips checking non-secure things like Images and CSS to keep the website running incredibly fast.
+  4. **The silent swap:** If your access token expired but you have a valid Refresh Token, this file secretly asks Supabase for a new one and **rewrites your cookies** with the new token before the page even starts loading!
+
+### 3. `server.ts` (The Backend Connection)
+
+- **What it does:** It connects Next.js Server Components and backend API routes to the database.
+- **Why we need it:** It reads the browser's cookies so that when you ask the backend API to save a Journal Entry, the backend definitively knows it's really you.
+- **The "Empty Catch Block":** Next.js Server Components are generally "read-only." If `server.ts` discovers an expired token and tries to issue a new one by writing a cookie, Next.js will complain because it's already started sending HTML to the screen. The empty `catch {}` block in that file safely silences that warning, because we know `proxy.ts` (our bouncer) securely already handled the token refresh perfectly at the door!
+
+---
+
+## 7. The App's Checkpoint (`src/proxy.ts`)
+
+While the logic for checking tokens and redirecting lives in `src/lib/supabase/proxy.ts` (the Bouncer), Next.js needs a file at the root of the `src/` folder to know how to intercept requests in the first place. That file is `src/proxy.ts` (the Doorframe).
+
+**How it works:**
+
+1. You try to visit `localhost:3000/dashboard`.
+2. Next.js instantly stops the page from loading and routes the request through `src/proxy.ts`.
+3. The `proxy` function catches the request and immediately hands it over to our Bouncer (`updateSession()`) to do the heavy lifting of checking cookies and permissions.
+
+**The Bypass List (`config.matcher`):**
+At the bottom of the file, there is a `config` object with a complex regex `matcher`. This is our **VIP Bypass List**.
+
+If your website is trying to load a massive logo (`logo.png`) or an internal stylesheet (`style.css`), it is a waste of time to run the database token check. The `matcher` explicitly tells Next.js _not_ to run the Bouncer if the request is just for basic static images or frontend design files (`_next/static`). This tiny optimization is crucial for keeping your website loading blazingly fast while staying mathematically secure!
