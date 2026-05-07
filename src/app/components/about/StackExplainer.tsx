@@ -101,7 +101,7 @@ export default function StackExplainer() {
                 key={card.title}
                 {...fadeUp}
                 transition={{ duration: 0.7, delay: index * 0.05 }}
-                className={`rounded-4xl border border-slate-900/10 bg-linear-to-br ${card.tones} p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ${card.text}`}
+                className={`rounded-4xl border border-slate-900/10 bg-linear-to-br ${card.tones} p-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_40px_100px_rgba(15,23,42,0.2)] ${card.text}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
