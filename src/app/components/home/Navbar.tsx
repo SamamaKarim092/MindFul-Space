@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -14,23 +14,11 @@ const Navbar = () => {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
-  const navShell = isHome
-    ? "border-slate-900/10 bg-white/72 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl"
-    : "border-white/20 bg-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.55)] backdrop-blur-3xl";
-
-  const navText = isHome
-    ? "text-slate-700 hover:text-slate-950"
-    : "text-white/80 hover:text-white";
-
-  const brandText = isHome ? "text-slate-950" : "text-white";
-
-  const primaryCta = isHome
-    ? "rounded-full bg-slate-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-    : "rounded-full bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-white/90";
-
-  const mobilePanel = isHome
-    ? "border-slate-900/10 bg-white/95"
-    : "border-white/10 bg-slate-900/95";
+  const navShell = "border-slate-900/10 bg-white/72 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl";
+  const navText = "text-slate-700 hover:text-slate-950";
+  const brandText = "text-slate-950";
+  const primaryCta = "rounded-full bg-slate-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800";
+  const mobilePanel = "border-slate-900/10 bg-white/95";
 
   return (
     <>
