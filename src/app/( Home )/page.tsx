@@ -11,6 +11,9 @@ import Features from "@/app/components/landing/Features";
 import ImpactNumbers from "@/app/components/landing/ImpactNumbers";
 import FinalCTA from "@/app/components/landing/FinalCTA";
 
+
+// checking commit
+
 export default function HomePage() {
   // Read the current auth state so the page knows whether to keep the user here or redirect.
   const { user, loading } = useAuth();
