@@ -9,54 +9,53 @@ const productPillars = [
   {
     title: "Private journaling",
     description:
-      "A focused writing space dedicated solely to your entries, mood labels, and daily reflections. It stays completely private, ensuring that your personal history remains yours alone, providing a safe harbor where you can freely organize your thoughts away from external noise and distractions.",
+      "A focused writing space for your entries and daily reflections. It stays completely private, ensuring your history remains yours alone, providing a safe harbor away from external noise.",
     icon: HeartHandshake,
     image:
-      "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800",
+      "https://img.freepik.com/free-photo/laptop-cup-table-dark-room-with-blank-screen-night_169016-47420.jpg?semt=ais_hybrid&w=740&q=80",
   },
   {
     title: "AI sentiment guidance",
     description:
-      "Integrated, n8n-powered analysis works entirely in the background to help translate your raw, unfiltered writing into readable emotional signals. It detects subtle shifts in your tone without interrupting your natural flow, providing a gentle analytical overlay to your everyday logging.",
+      "Integrated analysis works in the background to translate your raw writing into emotional signals. It detects shifts in tone without interrupting your natural flow.",
     icon: Bot,
     image:
-      "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800",
+      "https://plus.unsplash.com/premium_photo-1733266868412-cfc2ac17b497?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8YWklMjB0ZXh0fGVufDB8fDB8fHww",
   },
   {
     title: "Conversation support",
     description:
-      "Advanced chat workflows designed to respond dynamically using context directly extracted from your past journal entries. By remembering what you've documented previously, the platform offers a uniquely supportive, continuous, and highly personalized conversational experience.",
+      "Advanced chat workflows respond dynamically using context extracted from your past entries. By remembering your history, it offers a uniquely personalized experience.",
     icon: Sparkles,
     image:
-      "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800",
-  },
-  {
-    title: "Insightful analytics",
-    description:
-      "A suite of trends, emotional statistics, generated quotes, and interactive dashboard widgets that successfully turn your isolated daily entries into a longer-term, easily digestible picture of how you're doing, helping you spot critical patterns over weeks, months, or years.",
-    icon: BarChart3,
-    image:
-      "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=800",
+      "https://www.shutterstock.com/image-photo/ai-powers-workflow-automation-smart-600nw-2680667237.jpg",
   },
 ];
 
+// This component handles the word-by-word reveal animation at the top of the section.
+// As the user scrolls, `scrollYProgress` dictates the opacity of each word individually.
 const TextReveal = ({
   text,
   className,
+  style,
 }: {
   text: string;
   className?: string;
+  style?: any;
 }) => {
   const ref = useRef<HTMLParagraphElement>(null);
+  // Calculates scroll progress relative to specifically this <p> tag.
   const { scrollYProgress } = useScroll({
     target: ref,
+    // Start tracking when the top of the text hits 85% down the viewport.
+    // End tracking when the center of the text hits 50% (dead center) of the viewport.
     offset: ["start 85%", "center 50%"],
   });
 
   const words = text.split(" ");
 
   return (
-    <p ref={ref} className={className}>
+    <motion.p ref={ref} className={className} style={style}>
       {words.map((word, i) => {
         const start = i / words.length;
         const end = start + 1 / words.length;
@@ -70,22 +69,70 @@ const TextReveal = ({
           </span>
         );
       })}
-    </p>
+    </motion.p>
   );
 };
 
 export default function ProductPillars() {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Tracks the scroll progress specifically for the two-column layout (Text left, Images right)
   const { scrollYProgress } = useScroll({
-    target: contentRef, // Target the flex layout specifically to avoid early trigger from the header
+    target: contentRef,
     offset: ["start start", "end end"],
   });
 
+  // A separate scroll tracker just for the colors so they can trigger earlier
+  // Starts tracking when the content block reaches 75% down the screen (early entry).
+  const { scrollYProgress: colorScrollProgress } = useScroll({
+    target: contentRef,
+    offset: ["start 35%", "end end"],
+  });
+
+  // BACKGROUND COLOR TRANSITION:
   const backgroundColor = useTransform(
-    scrollYProgress,
-    [0, 0.31, 0.62, 0.93, 1],
-    ["#F6F1EB", "#EDF9FF", "#F5F3FF", "#ECFDF5", "#F6F1EB"],
+    colorScrollProgress,
+    [0, 0.1, 0.5, 0.98, 1],
+    ["#F6F1EB", "#005CE6", "#3b818f", "#929793", "#F6F1EB"],
+  );
+
+  // TEXT COLOR TRANSITION (HEADINGS):
+  const headingColor = useTransform(
+    colorScrollProgress,
+    [0, 0.15, 0.97, 1],
+    ["#0f172a", "#ffffff", "#ffffff", "#0f172a"],
+  );
+
+  // PARAGRAPH TEXT COLOR TRANSITION:
+  const pColor = useTransform(
+    colorScrollProgress,
+    [0, 0.15, 0.95, 1],
+    ["#475569", "#e2e8f0", "#e2e8f0", "#475569"],
+  );
+
+  // "What this product..." LABEL COLOR TRANSITION:
+  const labelColor = useTransform(
+    colorScrollProgress,
+    [0, 0.15, 0.95, 1],
+    ["#0f172a", "#f8fafc", "#f8fafc", "#0f172a"],
+  );
+
+  const iconContainerBg = useTransform(
+    colorScrollProgress,
+    [0, 0.15, 0.95, 1],
+    ["#0f172a", "rgba(255,255,255,0.15)", "rgba(255,255,255,0.15)", "#0f172a"],
+  );
+
+  const iconBorderColor = useTransform(
+    colorScrollProgress,
+    [0, 0.15, 0.95, 1],
+    [
+      "rgba(15,23,42,0.1)",
+      "rgba(255,255,255,0.2)",
+      "rgba(255,255,255,0.2)",
+      "rgba(15,23,42,0.1)",
+    ],
   );
 
   return (
@@ -96,18 +143,23 @@ export default function ProductPillars() {
     >
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto max-w-5xl flex flex-col items-center text-center pt-10 pb-16 md:pb-24">
-          <span className="text-sm font-bold tracking-[0.15em] text-slate-900 uppercase mb-8 md:mb-12">
+          <motion.span
+            style={{ color: labelColor }}
+            className="text-sm font-bold tracking-[0.15em] uppercase mb-8 md:mb-12"
+          >
             What this product is designed to do
-          </span>
+          </motion.span>
 
           <TextReveal
             text="The product is not just a journal. It is a system for turning reflection into something a user can understand and revisit."
-            className="text-3xl md:text-5xl lg:text-[54px] font-medium leading-[1.2] text-slate-950 text-balance mb-8 md:mb-10"
+            className="text-3xl md:text-5xl lg:text-[54px] font-medium leading-[1.2] text-balance mb-8 md:mb-10"
+            style={{ color: headingColor }}
           />
 
           <TextReveal
             text="The interface, automation layer, and data model all work toward one goal: helping users notice how they feel over time while keeping the experience emotionally light and technically solid."
-            className="text-xl md:text-3xl lg:text-[40px] font-normal leading-[1.3] text-slate-800 text-balance"
+            className="text-xl md:text-3xl lg:text-[40px] font-normal leading-[1.3] text-balance"
+            style={{ color: pColor }}
           />
         </div>
 
@@ -126,7 +178,7 @@ export default function ProductPillars() {
                 >
                   <motion.div
                     {...fadeUp}
-                    transition={{ duration: 0.7, delay: 0.1 }}
+                    transition={{ duration: 0.45, delay: 0.05 }}
                   >
                     <div className="md:hidden relative w-full h-[300px] mb-8 rounded-3xl overflow-hidden shadow-lg border border-slate-900/10">
                       <img
@@ -135,15 +187,29 @@ export default function ProductPillars() {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="hidden md:inline-flex mb-6 text-white bg-slate-950 rounded-2xl shadow-lg border border-slate-900/10 p-4">
-                      <Icon className="h-8 w-8" />
+                    <div className="flex items-center gap-6 mb-6">
+                      <motion.div
+                        style={{
+                          backgroundColor: iconContainerBg,
+                          borderColor: iconBorderColor,
+                        }}
+                        className="hidden md:flex shrink-0 text-white rounded-2xl shadow-lg border p-3 lg:p-4 transition-colors duration-300"
+                      >
+                        <Icon className="h-8 w-8 lg:h-10 lg:w-10" />
+                      </motion.div>
+                      <motion.h3
+                        style={{ color: headingColor }}
+                        className="text-4xl lg:text-5xl font-extrabold tracking-tight transition-colors duration-300"
+                      >
+                        {pillar.title}
+                      </motion.h3>
                     </div>
-                    <h3 className="text-3xl font-bold tracking-tight text-slate-950">
-                      {pillar.title}
-                    </h3>
-                    <p className="mt-6 text-xl leading-8 text-slate-600">
+                    <motion.p
+                      style={{ color: pColor }}
+                      className="mt-6 text-2xl lg:text-[28px] leading-relaxed transition-colors duration-300"
+                    >
                       {pillar.description}
-                    </p>
+                    </motion.p>
                   </motion.div>
                 </div>
               );
@@ -153,51 +219,65 @@ export default function ProductPillars() {
           <div className="hidden md:flex w-full md:w-[60%] sticky top-0 h-screen items-center justify-center">
             <div className="relative w-full h-[440px] lg:h-[480px] max-w-[540px] rounded-[2rem] overflow-hidden shadow-2xl flex items-center justify-center bg-slate-100">
               {productPillars.map((pillar, index) => {
-                // To match GSAP clipPath "inset(0px 0px 100%)" shifting to "inset(0)" naturally
-                // 1st Item (Index 0): Initially visible. As it scrolls to index 1, its bottom inset increases to 100%.
-                // 2nd Item (Index 1): Revealed from beneath as Item 0 wipes upward.
+                // To match GSAP aesthetics, we reveal images by wiping the top one away.
                 // We layer them in reverse order (highest index at bottom) so the clip-path wipe reveals the one below it.
-
+                // 1. Calculate inverted index: e.g. for 3 items: index 0 -> reversed 2 (Top), 1 -> 1, 2 -> 0 (Bottom)
                 const reversedIndex = productPillars.length - 1 - index;
                 const pillarData = productPillars[reversedIndex];
 
-                // Item 0 hides when scroll goes from 0 -> 0.33
-                // Item 1 hides when scroll goes from 0.33 -> 0.66
-                // Item 2 hides when scroll goes from 0.66 -> 1.0
-                // Last item never hides via clip-path
+                // 2. Determine scroll boundaries based on total items
+                // `step` is how much scroll real estate each item mathematically owns. e.g. 1/3 = 0.33
+                const step = 1 / productPillars.length;
 
-                // We define specific scroll steps to match when the text reaches the center of the viewport
-                // Text centers roughly at scrollYProgress: 0, 0.31, 0.62, 0.93
-                const startPoint = reversedIndex * 0.31;
+                // `wipeStart`: Scroll % where this specific image BEGINS wiping upward.
+                //   `reversedIndex * step` finds its base starting point.
+                //   `+ 0.15` delays the wipe so the user has time to read the text before the image moves.
+                const wipeStart = reversedIndex * step + 0.15;
 
-                // Start wiping early after leaving the last text, and take the entire distance gracefully
-                const wipeStart = startPoint + 0.02;
-                // Finish the wipe precisely as the next text title aligns into the top-center
-                const wipeEnd = startPoint + 0.28;
+                // `wipeEnd`: Scroll % where the wipe FINISHES.
+                //   The gap between wipeStart and wipeEnd controls HOW FAST it wipes.
+                //   (e.g., 0.22 - 0.15 = 0.07. So it wipes completely over 7% of scroll distance)
+                const wipeEnd = wipeStart + 0.22;
 
+                // 3. Drive the CSS Clip-Path wipe
                 const clipPathBottom = useTransform(
                   scrollYProgress,
                   [wipeStart, wipeEnd],
                   ["0%", "100%"],
                 );
 
-                // For the GSAP objectPosition shift:
-                // Shift origin slightly to create a slow parallax effect matching the wipe perfectly
+                // 4. Drive the Glass Divider Line (Visual scanning effect on the seams)
+                const bottomPosition = useTransform(
+                  scrollYProgress,
+                  [wipeStart, wipeEnd],
+                  ["0%", "100%"],
+                );
+
+                // 5. Fade the Glass Line in/out so it only appears DURING the wipe
+                const lineOpacity = useTransform(
+                  scrollYProgress,
+                  [wipeStart, wipeStart + 0.02, wipeEnd - 0.02, wipeEnd],
+                  [0, 1, 1, 0],
+                );
+
+                // 6. Slow downward image parallax (shifts image position from 50% to 65% slightly as it wipes)
                 const objectPositionY = useTransform(
                   scrollYProgress,
                   [wipeStart, wipeEnd],
-                  ["50%", "70%"],
+                  ["50%", "65%"],
                 );
 
-                const isLastItem = reversedIndex === 3;
+                // Determine if this is the foundational bottom item. The bottom item should NEVER wipe away.
+                const isBottomItem =
+                  reversedIndex === productPillars.length - 1;
 
                 return (
                   <motion.div
                     key={`visual-${pillarData.title}`}
-                    // Reverse z-index so index 0 is on top of index 1
+                    // Reverse z-index so the highest index is on top
                     style={{
                       zIndex: productPillars.length - reversedIndex,
-                      clipPath: isLastItem
+                      clipPath: isBottomItem
                         ? undefined
                         : useTransform(
                             clipPathBottom,
@@ -215,8 +295,22 @@ export default function ProductPillars() {
                           (val) => `50% ${val}`,
                         ),
                       }}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover relative z-0"
                     />
+
+                    {/* Glass transition line effect - ONLY show on layers that wipe away */}
+                    {!isBottomItem && (
+                      <motion.div
+                        style={{
+                          bottom: bottomPosition,
+                          opacity: lineOpacity,
+                        }}
+                        className="absolute left-0 right-0 h-[6px] z-10 
+                          bg-gradient-to-b from-white/40 to-transparent 
+                          backdrop-blur-md border-t border-white/60 
+                          shadow-[0_-4px_16px_rgba(255,255,255,0.4)]"
+                      />
+                    )}
                   </motion.div>
                 );
               })}
