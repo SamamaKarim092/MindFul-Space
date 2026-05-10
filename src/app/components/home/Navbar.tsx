@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Space_Grotesk } from "next/font/google";
 import { Github } from "lucide-react";
@@ -14,10 +15,12 @@ const Navbar = () => {
   const pathname = usePathname();
   const isHome = pathname === "/";
 
-  const navShell = "border-slate-900/10 bg-white/72 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl";
+  const navShell =
+    "border-slate-900/10 bg-white/72 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur-2xl";
   const navText = "text-slate-700 hover:text-slate-950";
   const brandText = "text-slate-950";
-  const primaryCta = "rounded-full bg-slate-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800";
+  const primaryCta =
+    "rounded-full bg-slate-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-slate-800";
   const mobilePanel = "border-slate-900/10 bg-white/95";
 
   return (
@@ -57,11 +60,16 @@ const Navbar = () => {
               </svg>
             </button>
             <Link href="/" className="flex items-center gap-2">
-              <span
-                className={`${font.className} text-xl font-bold ${brandText}`}
-              >
-                🧠 MindJournal
-              </span>
+              <img
+                src="/Logo.png"
+                alt="MindJournal Logo"
+                className="h-10 object-contain"
+              />
+              <img
+                src="/Logo%20text.png"
+                alt="MindJournal Text"
+                className="h-6 object-contain hidden sm:block mt-1.5"
+              />
             </Link>
           </div>
 
@@ -119,9 +127,18 @@ const Navbar = () => {
         }`}
       >
         <div className="mb-8 flex items-center justify-between">
-          <span className={`${font.className} text-xl font-bold ${brandText}`}>
-            MindJournal
-          </span>
+          <div className="flex items-center gap-2">
+            <img
+              src="/Logo.png"
+              alt="MindJournal Logo"
+              className="h-8 object-contain"
+            />
+            <img
+              src="/Logo%20text.png"
+              alt="MindJournal Text"
+              className="h-5 object-contain mt-1"
+            />
+          </div>
           <button
             onClick={() => setIsOpen(false)}
             className={`transition ${navText}`}
