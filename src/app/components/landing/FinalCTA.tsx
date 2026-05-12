@@ -102,10 +102,18 @@ export default function FinalCTA() {
           transition={{ delay: 0.4, duration: 1 }}
           className="w-full border-t border-white/10 pt-8 flex flex-col sm:flex-row justify-between items-center gap-6"
         >
-          <div className="flex items-center gap-2 text-white font-semibold text-lg tracking-tight">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 shadow-md"></div>
-            MindMarket.
-          </div>
+          <Link href="/" className="flex items-center gap-2">
+            <img
+              src="/Logo.png"
+              alt="MindJournal Logo"
+              className="h-8 object-contain"
+            />
+            <img
+              src="/Logo%20text.png"
+              alt="MindJournal Text"
+              className="h-5 object-contain mt-1"
+            />
+          </Link>
 
           <div className="flex gap-6 text-sm text-slate-400 font-medium">
             <Link href="#" className="hover:text-white transition-colors">
