@@ -16,9 +16,15 @@ let supabaseAdmin: ReturnType<typeof createClient> | null = null;
 function getSupabaseAdmin() {
   // Reuse one admin client instead of creating a new one on every request.
   if (!supabaseAdmin) {
-    const url = process.env.SUPABASE_URL;
+    const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    if (!url || !key) {
+      console.error('[getSupabaseAdmin] Missing env vars:', {
+        hasUrl: Boolean(url),
+        hasServiceRoleKey: Boolean(key),
+      });
+      throw new Error(`Missing required Supabase server credentials: ${!url ? 'SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL ' : ''}${!key ? 'SUPABASE_SERVICE_ROLE_KEY' : ''}`.trim());
+    }
     supabaseAdmin = createClient(url, key, {
       auth: { autoRefreshToken: false, persistSession: false },
     });

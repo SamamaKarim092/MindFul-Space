@@ -22,22 +22,6 @@
             }
           }
         ]
-      },
-      {
-        "id": "88d12a0f564ed148",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "c92c803977fd7e81",
-            "type": "leaf",
-            "state": {
-              "type": "empty",
-              "state": {},
-              "icon": "lucide-file",
-              "title": "New tab"
-            }
-          }
-        ]
       }
     ],
     "direction": "vertical"
@@ -57,7 +41,9 @@
               "type": "file-explorer",
               "state": {
                 "sortOrder": "alphabetical",
-                "autoReveal": false
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
               },
               "icon": "lucide-folder-closed",
               "title": "Files"
@@ -201,7 +187,8 @@
   },
   "active": "632d994ca18f0710",
   "lastOpenFiles": [
-    "create a link.md",
-    "Things to do for this project.md"
+    "Untitled.md",
+    "Things to do for this project.md",
+    "create a link.md"
   ]
 }
