@@ -311,7 +311,7 @@ export default function TrendsPage() {
                         border: "1px solid rgba(255,255,255,0.1)",
                         borderRadius: "12px",
                       }}
-                      formatter={(value: number) => [`${value}%`, "Sentiment"]}
+                      formatter={(value: any) => [`${value}%`, "Sentiment"]}
                       itemStyle={{ color: "#fff" }}
                     />
                     <Area
@@ -361,7 +361,7 @@ export default function TrendsPage() {
                           border: "1px solid rgba(255,255,255,0.1)",
                           borderRadius: "12px",
                         }}
-                        formatter={(value: number, name: string) => [value, name]}
+                        formatter={(value: any, name: any) => [value, name]}
                         itemStyle={{ color: "#fff" }}
                       />
                     </PieChart>
