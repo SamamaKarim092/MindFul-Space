@@ -8,6 +8,8 @@ export async function GET() {
     const hasDirectUrl = Boolean(process.env.DIRECT_URL);
     const hasSupabaseUrl = Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL);
     const hasServiceRoleKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const hasResendApiKey = Boolean(process.env.RESEND_API_KEY);
+    const hasGroqApiKey = Boolean(process.env.GROQ_API_KEY);
 
     // Test Prisma database query
     const dbTest = await prisma.$queryRawUnsafe('SELECT 1 as connected');
@@ -21,6 +23,8 @@ export async function GET() {
         hasDirectUrl,
         hasSupabaseUrl,
         hasServiceRoleKey,
+        hasResendApiKey,
+        hasGroqApiKey,
       },
       timestamp: new Date().toISOString(),
       version: '2.0.0',
@@ -36,6 +40,8 @@ export async function GET() {
         hasDirectUrl: Boolean(process.env.DIRECT_URL),
         hasSupabaseUrl: Boolean(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL),
         hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        hasResendApiKey: Boolean(process.env.RESEND_API_KEY),
+        hasGroqApiKey: Boolean(process.env.GROQ_API_KEY),
       },
       timestamp: new Date().toISOString(),
     }, { status: 500 });

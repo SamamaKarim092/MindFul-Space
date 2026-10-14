@@ -23,6 +23,8 @@ model User {
   reminderEnabled Boolean   @default(true) @map("reminder_enabled")
   reminderTime    String    @default("20:00") @map("reminder_time")
   lastOtpAt       DateTime? @map("last_otp_at")
+  otpCode         String?   @map("otp_code")
+  otpExpiresAt    DateTime? @map("otp_expires_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

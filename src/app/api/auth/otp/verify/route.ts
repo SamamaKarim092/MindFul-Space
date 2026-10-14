@@ -55,38 +55,52 @@ export async function POST(request: NextRequest) {
     }
 
     const cleanCode = code.trim();
-    const stored = otpStore.get(user.id);
+    const now = Date.now();
 
-    console.log(`[OTP Verification Attempt] User: ${user.id}, Entered: "${cleanCode}", Stored: "${stored?.code}", ExpiresIn: ${stored ? Math.round((stored.expiresAt - Date.now()) / 1000) + 's' : 'NONE'}`);
+    // Check in-memory store OR database record for active OTP
+    const memoryStored = otpStore.get(user.id);
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { otpCode: true, otpExpiresAt: true },
+    });
 
-    if (!stored || stored.expiresAt < Date.now()) {
+    const activeCode = memoryStored?.code || dbUser?.otpCode;
+    const expiresAt = memoryStored?.expiresAt || (dbUser?.otpExpiresAt ? new Date(dbUser.otpExpiresAt).getTime() : 0);
+
+    console.log(`[OTP Verification Attempt] User: ${user.id}, Entered: "${cleanCode}", Expected: "${activeCode}", ExpiresIn: ${Math.round((expiresAt - now) / 1000)}s`);
+
+    if (!activeCode || expiresAt < now) {
       return NextResponse.json({ error: 'Verification code has expired. Please request a new code.' }, { status: 400 });
     }
 
-    if (stored.code !== cleanCode) {
+    if (activeCode !== cleanCode) {
       return NextResponse.json({ error: 'Incorrect verification code. Please check your email and try again.' }, { status: 400 });
     }
 
-    // Code matches! Clear stored OTP
+    // Code matches! Clear stored OTP from memory and database
     otpStore.delete(user.id);
 
-    // Update lastOtpAt timestamp in user database record
-    const now = new Date();
+    // Update lastOtpAt timestamp and clear active OTP in user database record
+    const nowDate = new Date();
     await prisma.user.upsert({
       where: { id: user.id },
-      update: { lastOtpAt: now },
+      update: {
+        lastOtpAt: nowDate,
+        otpCode: null,
+        otpExpiresAt: null,
+      },
       create: {
         id: user.id,
         email: user.email!,
         name: user.name || null,
-        lastOtpAt: now,
+        lastOtpAt: nowDate,
       },
     });
 
     return NextResponse.json({
       success: true,
       message: 'Email OTP verified successfully. Account secured for 7 days.',
-      verifiedAt: now,
+      verifiedAt: nowDate,
     });
   } catch (error) {
     if (error instanceof AuthError) {
