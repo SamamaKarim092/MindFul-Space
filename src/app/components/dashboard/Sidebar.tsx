@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -38,6 +39,18 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { signOut } = useAuth();
   const { currentMood } = useMood();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Sign-out failed:", err);
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <>
@@ -122,11 +135,18 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         <div className="p-4 border-t border-slate-200/80 dark:border-white/10">
           <button
-            onClick={() => signOut()}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-500 dark:text-gray-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-slate-500 dark:text-gray-400 hover:bg-red-500/10 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Sign Out</span>
+            {isSigningOut ? (
+              <div className="w-5 h-5 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+            ) : (
+              <LogOut className="w-5 h-5" />
+            )}
+            <span className="font-medium">
+              {isSigningOut ? "Signing Out..." : "Sign Out"}
+            </span>
           </button>
         </div>
       </aside>

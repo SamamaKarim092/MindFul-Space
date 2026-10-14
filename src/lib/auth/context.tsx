@@ -90,12 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: getUnavailableError() };
     }
 
+    const trimmedName = name?.trim() || "";
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: name,
+          full_name: trimmedName,
+          display_name: trimmedName,
+          name: trimmedName,
         },
       },
     });
@@ -117,13 +120,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error };
   };
 
-  // Clears the current session from Supabase.
+  // Clears the current session from Supabase and redirects to the landing page.
   const signOut = async () => {
-    if (!supabase) {
-      return;
+    try {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.error("Sign-out error:", err);
+    } finally {
+      setUser(null);
+      setSession(null);
+      // Force clean navigation to the landing page, clearing in-memory client state
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
     }
-
-    await supabase.auth.signOut();
   };
 
   return (

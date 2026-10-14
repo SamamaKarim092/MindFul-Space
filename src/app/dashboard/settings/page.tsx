@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api/fetcher";
 import { createClient } from "@/lib/supabase/client";
 import { useTheme } from "next-themes";
 import { useMood, UI_THEME_PRESETS, UIThemeKey } from "@/app/context/MoodContext";
+import { getUserDisplayName, getUserAvatarUrl, getUserInitials } from "@/lib/auth/user-profile";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -16,6 +17,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const [newPassword, setNewPassword] = useState("");
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -35,9 +37,20 @@ export default function SettingsPage() {
   // Load display name & reminder settings
   useEffect(() => {
     if (user) {
-      setDisplayName(
-        user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "",
-      );
+      const initialName = getUserDisplayName(user);
+      if (initialName && initialName !== "Member") {
+        setDisplayName(initialName);
+      }
+
+      // Check DB user profile for customized name
+      apiFetch("/api/user/profile")
+        .then((res) => {
+          if (res?.name?.trim()) {
+            setDisplayName(res.name.trim());
+          }
+        })
+        .catch(() => {});
+
       apiFetch("/api/user/reminders")
         .then((res) => {
           if (res) {
@@ -97,6 +110,8 @@ export default function SettingsPage() {
   };
 
   const handleUpdateProfile = async () => {
+    const trimmed = displayName.trim();
+    if (!trimmed) return;
     setSaving(true);
     setSaved(false);
     try {
@@ -107,9 +122,21 @@ export default function SettingsPage() {
         );
       }
 
+      // Update Supabase Auth metadata
       await supabase.auth.updateUser({
-        data: { display_name: displayName },
+        data: {
+          display_name: trimmed,
+          full_name: trimmed,
+          name: trimmed,
+        },
       });
+
+      // Also persist to Prisma DB user table
+      await apiFetch("/api/user/profile", {
+        method: "POST",
+        body: JSON.stringify({ name: trimmed }),
+      });
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -183,6 +210,20 @@ export default function SettingsPage() {
     }
   };
 
+  const userAvatarUrl = getUserAvatarUrl(user);
+  const userInitials = getUserInitials({ ...user, name: displayName });
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } catch (err) {
+      console.error("Sign-out failed:", err);
+      setIsSigningOut(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl space-y-8">
       <div>
@@ -198,16 +239,16 @@ export default function SettingsPage() {
             Profile Information
           </h3>
           <div className="flex items-start gap-6">
-            {user?.user_metadata?.avatar_url ? (
+            {userAvatarUrl ? (
               <img
-                src={user.user_metadata.avatar_url}
-                alt="Avatar"
+                src={userAvatarUrl}
+                alt={displayName || "Avatar"}
                 className="w-20 h-20 rounded-full object-cover border border-slate-200 dark:border-white/10 shadow-lg shadow-purple-500/20 shrink-0"
                 referrerPolicy="no-referrer"
               />
             ) : (
               <div className="w-20 h-20 rounded-full bg-linear-to-br from-purple-500 to-pink-500 flex items-center justify-center text-2xl font-bold text-white shadow-lg shadow-purple-500/20 shrink-0">
-                {((user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email)?.[0] || "U").toUpperCase()}
+                {userInitials}
               </div>
             )}
             <div className="space-y-4 flex-1 max-w-md">
@@ -493,12 +534,17 @@ export default function SettingsPage() {
           </h3>
           <div className="space-y-4">
             <button
-              onClick={() => signOut()}
-              className="w-full flex items-center justify-between p-4 bg-red-500/5 rounded-xl border border-red-200/50 dark:border-red-500/10 hover:bg-red-500/10 transition-colors group"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              className="w-full flex items-center justify-between p-4 bg-red-500/5 rounded-xl border border-red-200/50 dark:border-red-500/10 hover:bg-red-500/10 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="text-red-600 dark:text-red-400 font-medium flex items-center gap-2">
-                <LogOut className="w-4 h-4" />
-                Sign Out
+                {isSigningOut ? (
+                  <div className="w-4 h-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+                ) : (
+                  <LogOut className="w-4 h-4" />
+                )}
+                {isSigningOut ? "Signing Out..." : "Sign Out"}
               </span>
             </button>
           </div>

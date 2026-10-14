@@ -2,9 +2,11 @@
 
 import { useAuth } from "@/lib/auth/context";
 import { useMood } from "@/app/context/MoodContext";
+import { getUserDisplayName, getUserAvatarUrl, getUserInitials } from "@/lib/auth/user-profile";
+import { apiFetch } from "@/lib/api/fetcher";
 import { Bell, Search, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -15,6 +17,31 @@ export default function Header({ onMenuToggle }: HeaderProps) {
   const { currentMood } = useMood();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [dbName, setDbName] = useState<string>("");
+
+  useEffect(() => {
+    if (user) {
+      const initialName = getUserDisplayName(user);
+      if (initialName && initialName !== "Member") {
+        setDbName(initialName);
+      }
+
+      // Sync name with database profile
+      apiFetch("/api/user/profile")
+        .then((res) => {
+          if (res?.name?.trim()) {
+            setDbName(res.name.trim());
+          }
+        })
+        .catch(() => {
+          // Graceful fallback to metadata
+        });
+    }
+  }, [user]);
+
+  const displayName = dbName || getUserDisplayName(user) || "Friend";
+  const avatarUrl = getUserAvatarUrl(user);
+  const initials = getUserInitials({ ...user, name: displayName });
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,20 +84,20 @@ export default function Header({ onMenuToggle }: HeaderProps) {
         <div className="flex items-center gap-3 pl-4 border-l border-slate-200/80 dark:border-white/10">
           <div className="text-right hidden sm:block">
             <p className="text-sm font-medium text-slate-800 dark:text-white">
-              {user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User"}
+              {displayName}
             </p>
             <p className="text-xs text-slate-500 dark:text-gray-400">Free Plan</p>
           </div>
-          {user?.user_metadata?.avatar_url ? (
+          {avatarUrl ? (
             <img
-              src={user.user_metadata.avatar_url}
-              alt="Avatar"
+              src={avatarUrl}
+              alt={displayName}
               className="w-10 h-10 rounded-full object-cover border border-slate-200 dark:border-white/10 shadow-lg shadow-purple-500/20"
               referrerPolicy="no-referrer"
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold shadow-lg shadow-purple-500/20">
-              {(user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.email)?.[0]?.toUpperCase() || "U"}
+              {initials}
             </div>
           )}
         </div>

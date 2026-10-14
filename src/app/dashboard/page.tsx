@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/context";
+import { getUserDisplayName } from "@/lib/auth/user-profile";
+import { apiFetch } from "@/lib/api/fetcher";
 import StatsCards from "@/app/components/dashboard/Widgets/StatsCards";
 import MoodChart from "@/app/components/dashboard/Widgets/MoodChart";
 import RecentEntries from "@/app/components/dashboard/Widgets/RecentEntries";
@@ -13,12 +15,29 @@ import MoodCalendar from "@/app/components/dashboard/Widgets/MoodCalendar";
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [dbName, setDbName] = useState<string>("");
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login");
+      router.replace("/");
     }
   }, [loading, user, router]);
+
+  useEffect(() => {
+    if (user) {
+      const initial = getUserDisplayName(user);
+      if (initial && initial !== "Member") {
+        setDbName(initial);
+      }
+      apiFetch("/api/user/profile")
+        .then((res) => {
+          if (res?.name?.trim()) {
+            setDbName(res.name.trim());
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   if (loading || !user) {
     return (
@@ -37,7 +56,7 @@ export default function DashboardPage() {
   };
 
   const greeting = getGreeting();
-  const userName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "there";
+  const userName = dbName || getUserDisplayName(user) || "there";
 
   return (
     <div className="space-y-6">
