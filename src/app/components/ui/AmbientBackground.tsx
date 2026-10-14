@@ -140,6 +140,7 @@ function getHexForBg(bgClass: string, isDark: boolean): string {
       "bg-[#07250e]": "#07250e",
       "bg-[#250719]": "#250719", // LOVING mood pink background
       "bg-[#2a0404]": "#2a0404", // ANGRY mood
+      "bg-[#0c0d12]": "#0c0d12", // OBSIDIAN SLATE theme
     };
     return mapping[bgClass] || "#130919";
   } else {
@@ -154,6 +155,7 @@ function getHexForBg(bgClass: string, isDark: boolean): string {
       "bg-[#07250e]": "#edf5f0", // CALM -> soft warm green
       "bg-[#250719]": "#faf0f5", // LOVING / GRATEFUL -> soft warm pink
       "bg-[#2a0404]": "#faf0f0", // ANGRY -> soft warm red
+      "bg-[#0c0d12]": "#f3f4f6", // OBSIDIAN SLATE light
     };
     return mapping[bgClass] || "#f6f1eb";
   }
