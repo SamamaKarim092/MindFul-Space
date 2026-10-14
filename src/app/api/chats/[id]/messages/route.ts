@@ -82,18 +82,53 @@ async function getAIResponse(chatId: string, userMessage: string): Promise<strin
         }
       : undefined;
 
-    const response = await fetch(n8nWebhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: userMessage, chatHistory, contextEntry }),
-    });
+    if (n8nWebhookUrl) {
+      try {
+        const response = await fetch(n8nWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMessage, chatHistory, contextEntry }),
+        });
 
-    if (!response.ok) throw new Error(`n8n webhook error: ${response.status}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.response) return data.response;
+        }
+      } catch (n8nErr) {
+        console.warn('n8n webhook error, falling back to Groq:', n8nErr);
+      }
+    }
 
-    const data = await response.json();
-    return data.response || "I'm here to listen. Could you tell me more?";
+    // Direct Groq Fallback
+    const groqKey = process.env.GROQ_API_KEY;
+    if (groqKey) {
+      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${groqKey}`,
+        },
+        body: JSON.stringify({
+          model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+          messages: [
+            { role: 'system', content: 'You are a warm, empathetic mental health coach inside MindFul-Space. Keep answers supportive and concise.' },
+            ...chatHistory.map(m => ({ role: m.role === 'USER' ? 'user' : 'assistant', content: m.content })),
+            { role: 'user', content: userMessage },
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        }),
+      });
+
+      if (groqRes.ok) {
+        const groqData = await groqRes.json();
+        return groqData.choices?.[0]?.message?.content?.trim() || "I'm here to listen. Could you tell me more?";
+      }
+    }
+
+    return "I'm here to listen. Could you tell me more?";
   } catch (error) {
-    console.error('Error calling n8n for AI response:', error);
+    console.error('Error getting AI response:', error);
     return "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.";
   }
 }

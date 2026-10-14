@@ -118,7 +118,7 @@ async function triggerSentimentAnalysis(entryId: string, content: string, title?
           'Authorization': `Bearer ${groqKey}`,
         },
         body: JSON.stringify({
-          model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+          model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
           messages: [
             { role: 'system', content: 'Analyze sentiment and respond with only a decimal number between -1.0 (very negative) and 1.0 (very positive).' },
             { role: 'user', content: text },

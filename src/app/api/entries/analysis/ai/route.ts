@@ -126,7 +126,7 @@ Respond with ONLY valid JSON (no markdown, no code blocks):
           'Authorization': `Bearer ${groqKey}`,
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
           messages: [
             { role: 'system', content: 'You are a mental health AI analyst. Always respond with valid JSON only.' },
             { role: 'user', content: prompt },
