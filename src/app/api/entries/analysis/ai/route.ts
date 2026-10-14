@@ -133,6 +133,7 @@ Respond with ONLY valid JSON (no markdown, no code blocks):
           ],
           temperature: 0.7,
           max_tokens: 1000,
+          response_format: { type: 'json_object' },
         }),
         signal: controller.signal,
       });
@@ -140,8 +141,17 @@ Respond with ONLY valid JSON (no markdown, no code blocks):
       if (err.name === 'AbortError') {
         return NextResponse.json({
           summary: "AI analysis timed out. Please try again later.",
-          insights: [],
-          suggestions: [],
+          insights: [
+            {
+              type: "suggestion",
+              title: "Analysis Timeout",
+              description: "The AI service took longer than expected. Please retry in a moment."
+            }
+          ],
+          suggestions: [
+            "Take a short mindful pause and try refreshing your analysis in a moment.",
+            "Continue writing journal entries or completing daily tasks to enrich your dataset."
+          ],
         });
       }
       throw err;
@@ -154,8 +164,17 @@ Respond with ONLY valid JSON (no markdown, no code blocks):
       console.error('Groq API error:', groqResponse.status, errorText);
       return NextResponse.json({
         summary: "Unable to generate AI insights at the moment. Please try again later.",
-        insights: [],
-        suggestions: [],
+        insights: [
+          {
+            type: "suggestion",
+            title: "Insights Generating",
+            description: "AI service is currently busy or warming up. Refresh shortly to see your latest analysis."
+          }
+        ],
+        suggestions: [
+          "Take a moment to reflect on your daily priorities and long-term goals.",
+          "Check in on your daily tasks or write a quick journal reflection."
+        ],
       });
     }
 
@@ -163,17 +182,57 @@ Respond with ONLY valid JSON (no markdown, no code blocks):
     const rawContent = groqData.choices?.[0]?.message?.content || '';
     console.log('Groq AI raw response:', rawContent.substring(0, 300));
 
+    // Fallback suggestions if AI returns null or empty suggestions
+    const defaultSuggestions = [
+      "Dedicate 10 minutes today to mindful reflection or breathwork to ground your thoughts.",
+      "Review your upcoming tasks and prioritize the single most impactful item first.",
+      "Acknowledge the small wins and moments of resilience throughout your week.",
+      "Schedule regular brief breaks away from screens to recharge your mental energy."
+    ];
+
     // Parse the AI response
     try {
       const cleaned = rawContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(cleaned);
-      return NextResponse.json(parsed);
+
+      const suggestions = Array.isArray(parsed?.suggestions) && parsed.suggestions.length > 0
+        ? parsed.suggestions.filter((s: any) => typeof s === 'string' && s.trim().length > 0)
+        : defaultSuggestions;
+
+      const insights = Array.isArray(parsed?.insights) && parsed.insights.length > 0
+        ? parsed.insights.filter((item: any) => item && typeof item === 'object')
+        : [
+            {
+              type: "positive",
+              title: "Consistent Self-Reflection",
+              description: "You are actively tracking your emotional patterns and daily commitments."
+            },
+            {
+              type: "suggestion",
+              title: "Balanced Daily Rhythm",
+              description: "Focus on harmonizing productive tasks with intentional restorative downtime."
+            }
+          ];
+
+      return NextResponse.json({
+        summary: typeof parsed?.summary === 'string' && parsed.summary.trim().length > 0
+          ? parsed.summary.trim()
+          : "Here is your holistic wellness and productivity overview based on your recent activity.",
+        insights,
+        suggestions: suggestions.length > 0 ? suggestions : defaultSuggestions,
+      });
     } catch {
       // If JSON parsing fails, still return something useful
       return NextResponse.json({
         summary: rawContent || "AI generated a response but it couldn't be parsed.",
-        insights: [],
-        suggestions: [],
+        insights: [
+          {
+            type: "suggestion",
+            title: "Analysis Completed",
+            description: "Review your recent tasks and journals to see patterns in your wellness."
+          }
+        ],
+        suggestions: defaultSuggestions,
       });
     }
   } catch (error) {

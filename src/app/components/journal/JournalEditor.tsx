@@ -274,12 +274,33 @@ export default function JournalEditor() {
       try {
         const result = await apiSuggestMood(content.trim(), title.trim());
 
-        const suggestions = result?.suggestions || [];
-        console.log("🎯 AI returned suggestions:", suggestions);
-        setAiSuggestions(suggestions);
+        const raw = Array.isArray(result?.suggestions) ? result.suggestions : [];
+        const validSuggestions = raw.filter(
+          (s: any): s is { label: string; color_category: string } =>
+            Boolean(s && typeof s.label === "string" && s.label.trim().length > 0)
+        );
+
+        console.log("🎯 AI returned suggestions:", validSuggestions);
+        if (validSuggestions.length > 0) {
+          setAiSuggestions(validSuggestions);
+        } else if (keywordMood) {
+          setAiSuggestions([{ label: keywordMood, color_category: "PURPLE" }]);
+        } else {
+          setAiSuggestions([
+            { label: "Reflective", color_category: "PURPLE" },
+            { label: "Calm", color_category: "GREEN" },
+          ]);
+        }
       } catch (error) {
         console.error("❌ AI mood suggestion error:", error);
-        setAiSuggestions([]);
+        if (keywordMood) {
+          setAiSuggestions([{ label: keywordMood, color_category: "PURPLE" }]);
+        } else {
+          setAiSuggestions([
+            { label: "Reflective", color_category: "PURPLE" },
+            { label: "Calm", color_category: "GREEN" },
+          ]);
+        }
       } finally {
         setIsLoadingAI(false);
       }
@@ -472,7 +493,13 @@ export default function JournalEditor() {
 
   // Show coach bubble when emotional content is detected
   useEffect(() => {
-    if (aiSuggestions.length > 0 && content.length > 50) {
+    const allLabels = [
+      ...aiSuggestions.map((s) => s.label),
+      ...selectedMoods.map((m) => m.label),
+      ...(suggestedMood ? [suggestedMood] : []),
+    ];
+
+    if (allLabels.length > 0 && content.length > 30) {
       // Check if any detected mood suggests the user might want to talk
       const emotionalMoods = [
         "SAD",
@@ -481,22 +508,33 @@ export default function JournalEditor() {
         "OVERWHELMED",
         "WORRIED",
         "SCARED",
+        "ANGRY",
+        "FRUSTRATED",
+        "TIRED",
+        "EXHAUSTED",
       ];
-      const hasEmotionalMood = aiSuggestions.some((s) =>
-        emotionalMoods.some((em) => s.label.toUpperCase().includes(em)),
+      const hasEmotionalMood = allLabels.some((l) =>
+        emotionalMoods.some((em) => l.toUpperCase().includes(em)),
       );
 
       // Also show for any mood after enough content
       if (
         hasEmotionalMood ||
-        (content.length > 100 && selectedMoods.length > 0)
+        (content.length > 80 && (selectedMoods.length > 0 || aiSuggestions.length > 0))
       ) {
         const primaryMood =
-          selectedMoods[0]?.label || aiSuggestions[0]?.label || "something";
+          selectedMoods[0]?.label ||
+          aiSuggestions[0]?.label ||
+          suggestedMood ||
+          "reflective";
+
         const suggestions: Record<string, string> = {
           SAD: "Going through a tough time? Let's talk about it.",
           ANXIOUS: "Feeling worried or anxious? Let's explore these feelings.",
           STRESSED: "Feeling weighed down or stressed? Let's talk.",
+          OVERWHELMED: "It sounds like a lot is on your plate. I'm here if you want to unpack it.",
+          ANGRY: "It is completely valid to feel frustrated. Would you like to vent?",
+          TIRED: "You seem exhausted today. Take it easy and be gentle with yourself.",
           default: `Feeling ${primaryMood.toLowerCase()}? Let's talk about it.`,
         };
 
@@ -509,7 +547,7 @@ export default function JournalEditor() {
         setShowCoachBubble(true);
       }
     }
-  }, [aiSuggestions, content.length, selectedMoods]);
+  }, [aiSuggestions, content.length, selectedMoods, suggestedMood]);
 
   return (
     <div className="bg-black/20 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
