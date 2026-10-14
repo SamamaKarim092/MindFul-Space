@@ -152,36 +152,113 @@ async function getAIResponse(
       console.warn('RAG retrieval failed, continuing without context:', ragError);
     }
 
-    // Try n8n first if configured
-    if (n8nWebhookUrl) {
+    // Direct Groq Inference first (ultra-fast sub-second response)
+    if (groqKey) {
+      // Build a rich system prompt with all user context
+      let systemPrompt = `You are a compassionate, warm, and supportive mental health coach inside a journaling app called MindFul-Space. Your role is to listen empathetically, validate feelings, ask thoughtful follow-up questions, and offer gentle guidance. Keep responses concise (2-4 paragraphs). Never diagnose conditions or prescribe medication. If someone is in crisis, suggest they contact emergency services or a crisis helpline.`;
+
+      if (contextEntry) {
+        systemPrompt += `\n\nThe user started this conversation from a journal entry titled "${contextEntry.title}". Entry content: "${contextEntry.content.slice(0, 500)}". Moods tagged: ${contextEntry.moodLabels.join(', ') || 'none'}.`;
+      } else if (latestJournalEntry) {
+        const dateStr = new Date(latestJournalEntry.createdAt).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+        });
+        systemPrompt += `\n\nUSER'S LATEST JOURNAL ENTRY (Written ${dateStr}): Title: "${latestJournalEntry.title}" | Content: "${latestJournalEntry.content.slice(0, 500)}" | Moods: ${latestJournalEntry.moodLabels.join(', ') || 'none'}. (You are aware of this latest journal entry if the user asks or mentions their recent feelings).`;
+      }
+
+      if (userTasks.length > 0) {
+        const taskSummary = userTasks.map(t => `${t.completed ? '✅' : '⬜'} [${t.priority}] ${t.text}`).join('; ');
+        systemPrompt += `\n\nUser's current tasks: ${taskSummary}`;
+      }
+
+      if (userGoals.length > 0) {
+        const goalSummary = userGoals.map(g => `${g.completed ? '✅' : '🎯'} (${g.category}) ${g.text}`).join('; ');
+        systemPrompt += `\n\nUser's wellness goals: ${goalSummary}`;
+      }
+
+      // ── RAG: Inject retrieved journal entries into system prompt ─────
+      if (ragEntries.length > 0) {
+        const ragContext = ragEntries.map(e => {
+          const date = new Date(e.createdAt).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'short', day: 'numeric',
+          });
+          const moods = e.moodLabels.length > 0 ? ` | Moods: ${e.moodLabels.join(', ')}` : '';
+          return `- [${date}] "${e.title}"${moods}: "${e.content.slice(0, 400)}" (Relevance: ${e.similarityPercent}%)`;
+        }).join('\n');
+
+        systemPrompt += `\n\nRELEVANT PAST JOURNAL ENTRIES (Retrieved via RAG semantic search):\n${ragContext}`;
+      }
+
+      const groqMessages: Array<{ role: string; content: string }> = [
+        { role: 'system', content: systemPrompt },
+        ...chatHistory.map(msg => ({
+          role: msg.role === 'USER' ? 'user' : 'assistant',
+          content: msg.content,
+        })),
+        { role: 'user', content: userMessage },
+      ];
+
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 12000);
 
-        let response: Response;
-        try {
-          response = await fetch(n8nWebhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              message: userMessage,
-              chatHistory,
-              contextEntry,
-              userTasks,
-              userGoals,
-              ragContext: ragEntries.length > 0 ? ragEntries.map(e => ({
-                title: e.title,
-                content: e.content.slice(0, 300),
-                date: e.createdAt,
-                relevance: e.similarityPercent,
-                moodLabels: e.moodLabels,
-              })) : undefined,
-            }),
-            signal: controller.signal,
-          });
-        } finally {
-          clearTimeout(timeout);
+        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey.trim()}`,
+          },
+          body: JSON.stringify({
+            model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+            messages: groqMessages,
+            temperature: 0.7,
+            max_tokens: 800,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (groqResponse.ok) {
+          const groqData = await groqResponse.json();
+          const aiContent = groqData.choices?.[0]?.message?.content?.trim();
+          if (aiContent) return { response: aiContent, ragEntries };
+        } else {
+          const errorText = await groqResponse.text();
+          console.error('Groq API error:', groqResponse.status, errorText);
+          let parsedMsg = errorText;
+          try {
+            const p = JSON.parse(errorText);
+            if (p.error?.message) parsedMsg = p.error.message;
+          } catch {}
+          return {
+            response: `[AI Connection Notice (${groqResponse.status})]: ${parsedMsg}`,
+            ragEntries,
+          };
         }
+      } catch (groqErr: any) {
+        console.warn('Groq direct call failed:', groqErr);
+      }
+    }
+
+    // Secondary Fallback: Try n8n webhook if configured
+    if (n8nWebhookUrl) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(n8nWebhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userMessage,
+            chatHistory,
+            contextEntry,
+            userTasks,
+            userGoals,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
 
         if (response.ok) {
           const data = await response.json();
@@ -189,112 +266,28 @@ async function getAIResponse(
           const n8nResponse = result?.response;
           if (n8nResponse) return { response: n8nResponse, ragEntries };
         }
-        // If n8n didn't return a valid response, fall through to Groq
-        console.warn('n8n returned invalid response, falling back to Groq');
       } catch (n8nError) {
-        console.warn('n8n webhook failed, falling back to Groq:', n8nError);
+        console.warn('n8n webhook fallback failed:', n8nError);
       }
     }
 
-    // Direct Groq fallback
-    if (!groqKey) {
-      console.warn('Neither N8N_CHAT_WEBHOOK_URL nor GROQ_API_KEY is configured');
+    if (!groqKey && !n8nWebhookUrl) {
       return {
-        response: "I'm sorry, the AI service is not configured. Please set up either N8N_CHAT_WEBHOOK_URL or GROQ_API_KEY in your environment.",
+        response: "The AI service is not configured. Please set up GROQ_API_KEY in your Vercel Environment Variables.",
         ragEntries: [],
       };
     }
 
-    // Build a rich system prompt with all user context
-    let systemPrompt = `You are a compassionate, warm, and supportive mental health coach inside a journaling app called MindFul-Space. Your role is to listen empathetically, validate feelings, ask thoughtful follow-up questions, and offer gentle guidance. Keep responses concise (2-4 paragraphs). Never diagnose conditions or prescribe medication. If someone is in crisis, suggest they contact emergency services or a crisis helpline.`;
-
-    if (contextEntry) {
-      systemPrompt += `\n\nThe user started this conversation from a journal entry titled "${contextEntry.title}". Entry content: "${contextEntry.content.slice(0, 500)}". Moods tagged: ${contextEntry.moodLabels.join(', ') || 'none'}.`;
-    } else if (latestJournalEntry) {
-      const dateStr = new Date(latestJournalEntry.createdAt).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric',
-      });
-      systemPrompt += `\n\nUSER'S LATEST JOURNAL ENTRY (Written ${dateStr}): Title: "${latestJournalEntry.title}" | Content: "${latestJournalEntry.content.slice(0, 500)}" | Moods: ${latestJournalEntry.moodLabels.join(', ') || 'none'}. (You are aware of this latest journal entry if the user asks or mentions their recent feelings).`;
-    }
-
-    if (userTasks.length > 0) {
-      const taskSummary = userTasks.map(t => `${t.completed ? '✅' : '⬜'} [${t.priority}] ${t.text}`).join('; ');
-      systemPrompt += `\n\nUser's current tasks: ${taskSummary}`;
-    }
-
-    if (userGoals.length > 0) {
-      const goalSummary = userGoals.map(g => `${g.completed ? '✅' : '🎯'} (${g.category}) ${g.text}`).join('; ');
-      systemPrompt += `\n\nUser's wellness goals: ${goalSummary}`;
-    }
-
-    // ── RAG: Inject retrieved journal entries into system prompt ─────
-    if (ragEntries.length > 0) {
-      const ragContext = ragEntries.map(e => {
-        const date = new Date(e.createdAt).toLocaleDateString('en-US', {
-          year: 'numeric', month: 'short', day: 'numeric',
-        });
-        const moods = e.moodLabels.length > 0 ? ` | Moods: ${e.moodLabels.join(', ')}` : '';
-        return `- [${date}] "${e.title}"${moods}: "${e.content.slice(0, 400)}" (Relevance: ${e.similarityPercent}%)`;
-      }).join('\n');
-
-      systemPrompt += `\n\nRELEVANT PAST JOURNAL ENTRIES (Retrieved via RAG semantic search — use these to give grounded, accurate answers about the user's history. Reference specific dates and details when relevant):\n${ragContext}`;
-    }
-
-    // Convert chat history to Groq message format
-    const groqMessages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: systemPrompt },
-    ];
-
-    for (const msg of chatHistory) {
-      groqMessages.push({
-        role: msg.role === 'USER' ? 'user' : 'assistant',
-        content: msg.content,
-      });
-    }
-
-    // Add the current user message
-    groqMessages.push({ role: 'user', content: userMessage });
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    let groqResponse: Response;
-    try {
-      groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
-          messages: groqMessages,
-          temperature: 0.7,
-          max_tokens: 800,
-        }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!groqResponse.ok) {
-      const errorText = await groqResponse.text();
-      console.error('Groq API error:', groqResponse.status, errorText);
-      return { response: "I'm having trouble connecting right now. Please try again in a moment.", ragEntries: [] };
-    }
-
-    const groqData = await groqResponse.json();
-    const aiContent = groqData.choices?.[0]?.message?.content?.trim();
     return {
-      response: aiContent || "I'm here to listen. Could you tell me more?",
-      ragEntries,
+      response: "I'm having trouble connecting to the AI service right now. Please verify your GROQ_API_KEY.",
+      ragEntries: [],
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting AI response:', error);
     return {
-      response: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.",
+      response: `Error connecting to AI: ${error?.message || 'unknown error'}`,
       ragEntries: [],
     };
   }
 }
+
