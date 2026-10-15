@@ -9,6 +9,8 @@ import AmbientBackground from "@/app/components/ui/AmbientBackground";
 import OtpModal from "@/app/components/auth/OtpModal";
 import { useAuth } from "@/lib/auth/context";
 
+import { isBackendWarm, markBackendWarm } from "@/lib/api/warm-tracker";
+
 export default function DashboardLayout({
   children,
 }: {
@@ -21,15 +23,23 @@ export default function DashboardLayout({
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (loading) {
+    if (loading && !isBackendWarm()) {
       timer = setTimeout(() => {
-        setSlowLoad(true);
-      }, 2400);
+        if (!isBackendWarm()) {
+          setSlowLoad(true);
+        }
+      }, 3000);
     } else {
       setSlowLoad(false);
     }
     return () => clearTimeout(timer);
   }, [loading]);
+
+  useEffect(() => {
+    if (user) {
+      markBackendWarm();
+    }
+  }, [user]);
 
   useEffect(() => {
     // If auth checking has finished and there is no authenticated user, redirect immediately to landing page

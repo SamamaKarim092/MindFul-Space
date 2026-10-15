@@ -3,6 +3,7 @@
 // sends JSON requests, and handles API errors in one shared place.
 
 import { createClient } from '@/lib/supabase/client';
+import { isBackendWarm, markBackendWarm } from './warm-tracker';
 
 export class ApiError extends Error {
   status: number;
@@ -26,14 +27,18 @@ function notifyColdStart(state: 'slow' | 'ready') {
 }
 
 function startSlowTracker() {
+  // If backend is already warm from a previous response, NEVER trigger the cold start banner
+  if (isBackendWarm()) return;
+
   activeRequests++;
   if (activeRequests === 1 && !slowTimer) {
     slowTimer = setTimeout(() => {
-      if (activeRequests > 0) {
+      // Re-verify backend isn't already warm before firing notification
+      if (activeRequests > 0 && !isBackendWarm()) {
         isSlowNoticeActive = true;
         notifyColdStart('slow');
       }
-    }, 3200);
+    }, 6000); // 6 seconds threshold: real cold-boots take ~30-50s, normal queries take <3s
   }
 }
 
@@ -46,6 +51,7 @@ function stopSlowTracker() {
     }
     if (isSlowNoticeActive) {
       isSlowNoticeActive = false;
+      markBackendWarm();
       notifyColdStart('ready');
     }
   }
@@ -74,6 +80,8 @@ export async function apiFetch<T = any>(
   let response: Response;
   try {
     response = await fetch(url, { ...options, headers });
+    // Any successful or completed response proves the backend is alive and warm
+    markBackendWarm();
   } finally {
     stopSlowTracker();
   }

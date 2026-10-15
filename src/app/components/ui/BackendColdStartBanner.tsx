@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Cloud, CheckCircle2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { isBackendWarm, markBackendWarm } from "@/lib/api/warm-tracker";
 
 export default function BackendColdStartBanner() {
   const [status, setStatus] = useState<"idle" | "slow" | "ready">("idle");
@@ -13,10 +14,13 @@ export default function BackendColdStartBanner() {
       const customEvent = event as CustomEvent<{ state: "slow" | "ready" }>;
       const nextState = customEvent.detail?.state;
 
+      // Never show the cold start dialog if the backend is already warm
       if (nextState === "slow") {
+        if (isBackendWarm()) return;
         setDismissed(false);
         setStatus("slow");
       } else if (nextState === "ready") {
+        markBackendWarm();
         setStatus("ready");
         const timer = setTimeout(() => {
           setStatus("idle");
@@ -31,7 +35,7 @@ export default function BackendColdStartBanner() {
     };
   }, []);
 
-  if (status === "idle" || dismissed) {
+  if (status === "idle" || dismissed || (status === "slow" && isBackendWarm())) {
     return null;
   }
 
