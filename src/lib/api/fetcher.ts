@@ -13,6 +13,44 @@ export class ApiError extends Error {
   }
 }
 
+let activeRequests = 0;
+let slowTimer: NodeJS.Timeout | null = null;
+let isSlowNoticeActive = false;
+
+function notifyColdStart(state: 'slow' | 'ready') {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('render-backend-cold-start', { detail: { state } })
+    );
+  }
+}
+
+function startSlowTracker() {
+  activeRequests++;
+  if (activeRequests === 1 && !slowTimer) {
+    slowTimer = setTimeout(() => {
+      if (activeRequests > 0) {
+        isSlowNoticeActive = true;
+        notifyColdStart('slow');
+      }
+    }, 3200);
+  }
+}
+
+function stopSlowTracker() {
+  activeRequests = Math.max(0, activeRequests - 1);
+  if (activeRequests === 0) {
+    if (slowTimer) {
+      clearTimeout(slowTimer);
+      slowTimer = null;
+    }
+    if (isSlowNoticeActive) {
+      isSlowNoticeActive = false;
+      notifyColdStart('ready');
+    }
+  }
+}
+
 /**
  * Fetch wrapper that auto-attaches Supabase auth token.
  * Used as the SWR fetcher and for mutation calls.
@@ -32,7 +70,13 @@ export async function apiFetch<T = any>(
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
-  const response = await fetch(url, { ...options, headers });
+  startSlowTracker();
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } finally {
+    stopSlowTracker();
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({ error: 'Unknown error' }));

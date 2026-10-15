@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/context";
 import { ThemeProvider } from "@/app/components/theme-provider";
+import BackendColdStartBanner from "@/app/components/ui/BackendColdStartBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +37,10 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <BackendColdStartBanner />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
